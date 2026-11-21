@@ -243,6 +243,12 @@ input:disabled{opacity:.6}
     <input id="pin-in" class="inp" type="password" inputmode="numeric" maxlength="4" autocomplete="off" style="font-size:28px;text-align:center;letter-spacing:10px">
     <div class="err" id="pin-err"></div>
     <button type="button" class="btn" id="pin-bio" hidden>👆 আঙুলের ছাপ দিয়ে খুলুন</button>
+    <button type="button" class="link" id="pin-forgot" style="align-self:center">PIN ভুলে গেছি?</button>
+    <div class="sec" id="pin-rec" hidden>
+      <p class="help">আপনার দোকানের <b>যেকোনো একটা জিনিসের মোট কেনা দাম</b> লিখুন, মাল যোগ করার সময় যেটা লিখেছিলেন (যেমন ১২টা প্যান্ট ১৮০০ টাকায় কিনলে লিখুন ১৮০০)। মিললে PIN উঠে যাবে।</p>
+      <input id="pin-recin" class="inp" inputmode="decimal" placeholder="মোট কেনা দাম">
+      <button type="button" class="btn" id="pin-recgo">PIN উঠিয়ে দিন</button>
+    </div>
     <div class="btns"><button type="button" class="btn" id="pin-cancel">বাতিল</button><button type="submit" class="btn primary">খুলুন</button></div>
   </form>
 </div>
@@ -314,7 +320,7 @@ input:disabled{opacity:.6}
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="1.5";
+const APPV="1.5.1";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED=__SEED__;
 const NATIVE=typeof window.Android!=="undefined";
@@ -1019,11 +1025,16 @@ function viewSettings(box){
 let unlockedUntil=0,pinNext=null;
 function bioAvail(){if(!NATIVE||typeof Android.bio!=="function")return false;try{return !!Android.canBio()}catch(e){return false}}
 const bioOn=()=>S.prefs.bio!==false&&bioAvail();
-function withPin(fn){if(!S.prefs.pin||Date.now()<unlockedUntil){fn();return}pinNext=fn;$("pin-in").value="";$("pin-err").textContent="";$("pinBg").hidden=false;
+function withPin(fn){if(!S.prefs.pin||Date.now()<unlockedUntil){fn();return}pinNext=fn;$("pin-in").value="";$("pin-err").textContent="";$("pin-rec").hidden=true;$("pin-forgot").hidden=false;$("pinBg").hidden=false;
   const b=bioOn();$("pin-bio").hidden=!b;if(b)Android.bio();else setTimeout(()=>$("pin-in").focus(),50)}
 function unlockNow(){unlockedUntil=Date.now()+10*60e3;$("pinBg").hidden=true;const f=pinNext;pinNext=null;f&&f()}
 window.onBio=ok=>{if($("pinBg").hidden)return;if(ok)unlockNow();else{$("pin-err").textContent="";setTimeout(()=>$("pin-in").focus(),50)}};
 $("pin-bio").onclick=()=>Android.bio();
+$("pin-forgot").onclick=()=>{$("pin-rec").hidden=false;$("pin-forgot").hidden=true;$("pin-recin").focus()};
+$("pin-recgo").onclick=()=>{const v=num($("pin-recin").value);
+  if(v>0&&S.items.some(it=>Math.round(it.total||0)===Math.round(v))){S.prefs.pin="";saveNow();$("pin-rec").hidden=true;$("pin-forgot").hidden=false;$("pin-recin").value="";
+    unlockNow();toast("PIN উঠিয়ে দেওয়া হলো। আরও → Backup · PIN · Update থেকে নতুন PIN দিন।",null,null,6000)}
+  else{$("pin-err").textContent="মেলেনি। আরেকটা জিনিসের মোট কেনা দাম দিয়ে চেষ্টা করুন।"}};
 $("pinForm").onsubmit=e=>{e.preventDefault();if(toEn($("pin-in").value.trim())===S.prefs.pin){unlockNow()}else{$("pin-err").textContent="PIN ভুল হয়েছে";$("pin-in").value=""}};
 $("pin-cancel").onclick=()=>{$("pinBg").hidden=true;pinNext=null};
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&S.prefs.pin)unlockedUntil=Math.min(unlockedUntil,Date.now()+60e3)});
