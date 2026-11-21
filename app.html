@@ -25,6 +25,9 @@ header{position:sticky;top:0;background:var(--bg);padding:12px 0 10px;z-index:5;
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 h1{margin:0;font-size:23px;font-weight:700}
 .today{font-size:16px;color:var(--muted);text-align:right}
+.topr{display:flex;align-items:center;gap:10px}
+.lockbtn{width:44px;height:44px;flex:none;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);font-size:22px;line-height:1;display:grid;place-items:center;padding:0}
+.lockbtn.locked{background:var(--accent-soft);border-color:var(--accent)}
 .today b{color:var(--price)}
 input,select,textarea,button{font:inherit;color:inherit}
 #q{width:100%;box-sizing:border-box;font-size:21px;padding:11px 14px;border:2px solid var(--line);border-radius:12px;background:var(--surface)}
@@ -171,7 +174,7 @@ input:disabled{opacity:.6}
 
 <div class="wrap">
   <header>
-    <div class="top"><h1>দামের খাতা</h1><div class="today" id="todayLine"></div></div>
+    <div class="top"><h1>দামের খাতা</h1><div class="topr"><div class="today" id="todayLine"></div><button type="button" class="lockbtn" id="lockBtn" hidden aria-label="লক করুন">🔓</button></div></div>
     <div id="searchBox"><input id="q" type="search" placeholder="জিনিসের নাম লিখুন…" autocomplete="off" aria-label="জিনিস খুঁজুন"></div>
     <div class="chips" id="chips"></div>
     <div class="noterow" id="noteRow"><div class="note" id="note"></div>
@@ -320,7 +323,7 @@ input:disabled{opacity:.6}
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="2.0.1";
+const APPV="2.1";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED={"v": 3, "items": [], "days": {}};
 const NATIVE=typeof window.Android!=="undefined";
@@ -487,7 +490,7 @@ function render(){
   const s=toEn($("q").value.trim().toLowerCase());
   const list=S.items.filter(it=>(cat==="সব"||(cat==="কম আছে"?left(it)<=2:it.cat===cat))&&(!s||toEn(it.name.toLowerCase()).includes(s)))
     .sort((a,b)=>a.name.localeCompare(b.name,"bn"));
-  $("todayLine").innerHTML=`আজ বিক্রি: <b>${bn(today().n)}টা</b>`;
+  $("todayLine").innerHTML=`আজ বিক্রি: <b>${bn(today().n)}টা</b>`;lockUI();
   $("note").textContent=S.items.length?`${bn(S.items.length)} রকম জিনিস`:"";
   if(!S.items.length){$("list").innerHTML=`<div class="empty">এখনো কোনো জিনিস নেই।<br>নিচে <b>মাল যোগ</b> চাপুন। একসাথে অনেকগুলো লিখে দিতে পারবেন।</div>`;return}
   if(!list.length){$("list").innerHTML=`<div class="empty">"${esc($("q").value)}" পাওয়া যায়নি।</div>`;return}
@@ -862,7 +865,7 @@ function renderMore(){
     box.innerHTML=`<div class="tiles">${TILES.map(([k,i,l])=>`<button type="button" class="tile" data-mv="${k}"><span class="ti">${i}</span><span>${l}</span>${badge[k]?`<small>${badge[k]}</small>`:""}</button>`).join("")}</div>
       ${S.prefs.pin?`<button type="button" class="btn" id="mb-lock" style="margin-top:10px;width:100%">🔒 এখনই লক করুন</button>`:""}`;
     box.querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{moreView=b.dataset.mv;renderMore();window.scrollTo(0,0)});
-    if($("mb-lock"))$("mb-lock").onclick=()=>{unlockedUntil=0;show("list");toast("লক করা হলো")};
+    if($("mb-lock"))$("mb-lock").onclick=lockNow;
     return;
   }
   const [mv,arg]=moreView.split(":");
@@ -1090,8 +1093,8 @@ function viewSettings(box){
     const code=toEn($("dr-code").value).replace(/\s/g,"");
     S.prefs.driveUrl=u.split("?")[0];S.prefs.driveKey=code||S.prefs.driveKey||String(Math.floor(1e7+Math.random()*9e7));S.prefs.syncSince=0;S.prefs.lastPush=0;saveNow();renderMore();sync(true)};
   if($("pn-bio"))$("pn-bio").onclick=()=>{S.prefs.bio=S.prefs.bio===false;saveNow();renderMore();toast(S.prefs.bio?"আঙুলের ছাপ চালু হলো":"আঙুলের ছাপ বন্ধ হলো")};
-  if(P.pin){$("pn-off").onclick=()=>armed($("pn-off"),()=>{S.prefs.pin="";saveNow();renderMore();toast("PIN বন্ধ হলো")});$("pn-change").onclick=()=>{S.prefs.pin="";saveNow();renderMore()}}
-  else $("pn-set").onclick=()=>{const v=toEn($("pn-new").value.trim());if(!/^\d{4}$/.test(v)){toast("৪টা সংখ্যা দিন");return}S.prefs.pin=v;unlockedUntil=Date.now()+10*60e3;saveNow();renderMore();toast("PIN চালু হলো। মনে রাখবেন!",null,null,4000)};
+  if(P.pin){$("pn-off").onclick=()=>armed($("pn-off"),()=>{S.prefs.pin="";saveNow();renderMore();lockUI();toast("PIN বন্ধ হলো")});$("pn-change").onclick=()=>{S.prefs.pin="";saveNow();renderMore()}}
+  else $("pn-set").onclick=()=>{const v=toEn($("pn-new").value.trim());if(!/^\d{4}$/.test(v)){toast("৪টা সংখ্যা দিন");return}S.prefs.pin=v;unlockedUntil=Date.now()+10*60e3;saveNow();renderMore();lockUI();toast("PIN চালু হলো। মনে রাখবেন!",null,null,4000)};
 }
 
 /* ---- PIN lock ---- */
@@ -1100,7 +1103,11 @@ function bioAvail(){if(!NATIVE||typeof Android.bio!=="function")return false;try
 const bioOn=()=>S.prefs.bio!==false&&bioAvail();
 function withPin(fn){if(!S.prefs.pin||Date.now()<unlockedUntil){fn();return}pinNext=fn;$("pin-in").value="";$("pin-err").textContent="";$("pin-rec").hidden=true;$("pin-forgot").hidden=false;$("pinBg").hidden=false;
   const b=bioOn();$("pin-bio").hidden=!b;if(b)Android.bio();else setTimeout(()=>$("pin-in").focus(),50)}
-function unlockNow(){unlockedUntil=Date.now()+10*60e3;$("pinBg").hidden=true;const f=pinNext;pinNext=null;f&&f()}
+function lockUI(){const b=$("lockBtn");if(!b)return;b.hidden=!S.prefs.pin;const locked=Date.now()>=unlockedUntil;b.textContent=locked?"🔒":"🔓";b.classList.toggle("locked",locked);b.setAttribute("aria-label",locked?"লক করা আছে":"এখনই লক করুন")}
+function lockNow(){unlockedUntil=0;if(!$("editBg").hidden)closeEdit();$("pinBg").hidden=true;if(view==="sum"||view==="more")show("list");lockUI();toast("লক করা হলো 🔒")}
+$("lockBtn").onclick=()=>{if(Date.now()<unlockedUntil)lockNow();else toast("লক করা আছে। হিসাব বা আরও খুললে PIN চাইবে।")};
+setInterval(lockUI,20e3);
+function unlockNow(){unlockedUntil=Date.now()+10*60e3;setTimeout(lockUI,0);$("pinBg").hidden=true;const f=pinNext;pinNext=null;f&&f()}
 window.onBio=ok=>{if($("pinBg").hidden)return;if(ok)unlockNow();else{$("pin-err").textContent="";setTimeout(()=>$("pin-in").focus(),50)}};
 $("pin-bio").onclick=()=>Android.bio();
 $("pin-forgot").onclick=()=>{$("pin-rec").hidden=false;$("pin-forgot").hidden=true;$("pin-recin").focus()};
