@@ -47,6 +47,7 @@ public class MainActivity extends Activity {
     WebView web;
     final Handler h = new Handler(Looper.getMainLooper());
     volatile boolean ready = false;
+    volatile String loaded = null;
     String photoSlot = "o";
     String pendingName, pendingJson;
 
@@ -87,6 +88,7 @@ public class MainActivity extends Activity {
             try { html = readStream(getAssets().open("app.html")); } catch (Exception e) { html = "<h1>app.html missing</h1>"; }
         }
         ready = false;
+        loaded = html;
         web.loadDataWithBaseURL(BASE, html, "text/html", "utf-8", null);
         if (cached) {
             // If the downloaded version fails to start, fall back to the built-in version.
@@ -99,26 +101,38 @@ public class MainActivity extends Activity {
         }
     }
 
-    void checkUpdate() {
+    void checkUpdate() { checkUpdate(false); }
+
+    // Returns "new", "same" or "fail".
+    String checkUpdate(boolean manual) {
         try {
-            HttpURLConnection con = (HttpURLConnection) new URL(REMOTE + "?t=" + (System.currentTimeMillis() / 60000)).openConnection();
+            HttpURLConnection con = (HttpURLConnection) new URL(REMOTE + "?t=" + (manual ? System.currentTimeMillis() : System.currentTimeMillis() / 60000)).openConnection();
             con.setConnectTimeout(8000);
             con.setReadTimeout(20000);
             con.setUseCaches(false);
-            if (con.getResponseCode() != 200) return;
+            if (con.getResponseCode() != 200) return "fail";
             String html = readStream(con.getInputStream());
-            if (!html.contains(MARKER) || html.length() < 5000) return;
+            if (!html.contains(MARKER) || html.length() < 5000) return "fail";
+            if (html.equals(loaded)) return "same";
             String current = null;
             if (f("app.html").exists()) current = readStream(new java.io.FileInputStream(f("app.html")));
-            if (html.equals(current)) return;
-            File tmp = f("app.html.tmp");
-            try (OutputStream o = new FileOutputStream(tmp)) { o.write(html.getBytes(StandardCharsets.UTF_8)); }
-            if (!tmp.renameTo(f("app.html"))) return;
+            if (!html.equals(current)) {
+                File tmp = f("app.html.tmp");
+                try (OutputStream o = new FileOutputStream(tmp)) { o.write(html.getBytes(StandardCharsets.UTF_8)); }
+                if (!tmp.renameTo(f("app.html"))) return "fail";
+            }
             f("bad").delete();
-            if (current != null) {
+            if (!manual && current != null && !html.equals(current)) {
                 h.post(() -> web.evaluateJavascript("window.onUpdateReady&&onUpdateReady()", null));
             }
-        } catch (Exception ignored) {}
+            if (!manual && current == null) {
+                // First download: switch to it right away if the page is idle at start.
+                h.post(() -> web.evaluateJavascript("window.onUpdateReady&&onUpdateReady()", null));
+            }
+            return "new";
+        } catch (Exception e) {
+            return "fail";
+        }
     }
 
     static String readStream(InputStream in) throws java.io.IOException {
@@ -156,7 +170,10 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void ready() { ready = true; }
         @JavascriptInterface public void reload() { h.post(MainActivity.this::loadApp); }
-        @JavascriptInterface public String version() { return "1"; }
+        @JavascriptInterface public String version() { return "2"; }
+        @JavascriptInterface public void checkUpdate() {
+            new Thread(() -> { String r = MainActivity.this.checkUpdate(true); js("window.onUpdateCheck&&onUpdateCheck('" + r + "')"); }).start();
+        }
         @JavascriptInterface public void pickPhoto(String slot) {
             photoSlot = slot;
             h.post(() -> {

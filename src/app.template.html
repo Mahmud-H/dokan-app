@@ -6,7 +6,7 @@
 <title>দামের খাতা</title>
 <style>
 @font-face{font-family:"Kalpurush";src:url(data:font/woff2;base64,__FONT__) format("woff2");font-weight:400 700;font-display:swap}
-/* Layout: phone-first single column; sticky header with search, three views switched by a bottom tab bar */
+/* Layout: phone-first single column; sticky header with search, three views switched by a bottom tab bar; items as list or 2-column grid */
 :root{
   --bg:#f4f5f1; --surface:#ffffff; --fg:#141a17; --muted:#4a534d; --line:#e1e4de;
   --accent:#1f7a52; --accent-fg:#ffffff; --accent-soft:#e3f1e9; --price:#0f5c3c;
@@ -19,78 +19,108 @@
   --warn:#f0a952; --danger:#f2867e; color-scheme:dark}}
 *{-webkit-tap-highlight-color:transparent}
 html,body{margin:0}
-body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:17px;line-height:1.5}
-.wrap{max-width:680px;margin:0 auto;padding:0 16px 96px}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:18px;line-height:1.5}
+.wrap{max-width:680px;margin:0 auto;padding:0 14px 96px}
 header{position:sticky;top:0;background:var(--bg);padding:12px 0 10px;z-index:5;display:flex;flex-direction:column;gap:8px}
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-h1{margin:0;font-size:21px;font-weight:700}
-.today{font-size:15px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+h1{margin:0;font-size:23px;font-weight:700}
+.today{font-size:16px;color:var(--muted);text-align:right}
 .today b{color:var(--price)}
 input,select,textarea,button{font:inherit;color:inherit}
-#q{width:100%;box-sizing:border-box;font-size:20px;padding:12px 14px;border:2px solid var(--line);border-radius:12px;background:var(--surface)}
+#q{width:100%;box-sizing:border-box;font-size:21px;padding:11px 14px;border:2px solid var(--line);border-radius:12px;background:var(--surface)}
 #q:focus,.f input:focus,.f select:focus,textarea:focus{outline:none;border-color:var(--accent)}
 .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
-.chip{flex:none;font-size:15px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+.chip{flex:none;font-size:16px;padding:4px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
 .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
-.note{font-size:14px;color:var(--muted)}
+.noterow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.note{font-size:15px;color:var(--muted)}
+.vt{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;flex:none}
+.vt button{border:0;background:var(--surface);padding:4px 12px;font-size:15px}
+.vt button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+/* list view */
 #list{display:flex;flex-direction:column;gap:8px}
-.item{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px}
-.ph{width:64px;height:64px;border-radius:9px;background:var(--accent-soft);display:grid;place-items:center;font-size:24px;font-weight:700;color:var(--accent);overflow:hidden;border:0;padding:0}
+.item{display:grid;grid-template-columns:68px 1fr auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px}
+.ph{width:68px;height:68px;border-radius:9px;background:var(--accent-soft);display:grid;place-items:center;font-size:26px;font-weight:700;color:var(--accent);overflow:hidden;border:0;padding:0}
 .ph img{width:100%;height:100%;object-fit:cover}
 .mid{min-width:0;background:none;border:0;text-align:left;padding:0}
-.nm{font-size:19px;font-weight:600;overflow-wrap:anywhere;line-height:1.35}
-.sub{font-size:16px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+.nm{font-size:21px;font-weight:600;overflow-wrap:anywhere;line-height:1.3}
+.sub{font-size:17px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
 .stock{font-weight:600;color:var(--fg)}
 .stock.low{color:var(--warn)} .stock.out{color:var(--danger)}
 .right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
-.price{font-size:26px;font-weight:700;color:var(--price);font-variant-numeric:tabular-nums;line-height:1}
-.sell{font-size:15px;font-weight:600;padding:7px 12px;border-radius:8px;border:0;background:var(--accent);color:var(--accent-fg);white-space:nowrap}
+.price{font-size:28px;font-weight:700;color:var(--price);line-height:1.1}
+.sell{font-size:17px;font-weight:600;padding:6px 14px;border-radius:9px;border:0;background:var(--accent);color:var(--accent-fg);white-space:nowrap}
 .sell:disabled{background:var(--line);color:var(--muted)}
-.empty{padding:28px 8px;text-align:center;color:var(--muted);line-height:1.7}
+/* grid view */
+#list.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#list.grid .item{grid-template-columns:1fr;align-items:stretch;padding:0;overflow:hidden;gap:0}
+#list.grid .ph{width:100%;height:auto;aspect-ratio:1;border-radius:0;font-size:46px}
+#list.grid .mid{padding:8px 10px 0}
+#list.grid .nm{font-size:19px}
+#list.grid .sub{font-size:15px}
+#list.grid .right{flex-direction:row;justify-content:space-between;align-items:center;padding:6px 10px 10px}
+#list.grid .price{font-size:24px}
+#list.grid .sell{padding:6px 10px;font-size:16px}
+.empty{padding:28px 8px;text-align:center;color:var(--muted);line-height:1.7;grid-column:1/-1}
+/* forms */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
-.panel h2{margin:0;font-size:19px}
+.panel h2{margin:0;font-size:21px}
 .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--line);border-radius:10px;padding:3px;gap:3px}
 .seg button{border:0;border-radius:8px;padding:8px;background:none;font-weight:600}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent)}
-.f{display:flex;flex-direction:column;gap:4px;font-size:15px;color:var(--muted)}
-.f input,.f select,textarea{font-size:18px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);width:100%;box-sizing:border-box}
+.f{display:flex;flex-direction:column;gap:4px;font-size:16px;color:var(--muted)}
+.f input,.f select,textarea{font-size:19px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);width:100%;box-sizing:border-box;color:var(--fg)}
 textarea{min-height:170px;line-height:1.6;resize:vertical}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.calc{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:16px;line-height:1.7}
+.calc{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:17px;line-height:1.7}
 .link{color:var(--accent);background:none;border:0;padding:0;text-decoration:underline}
 .photo-pick{display:flex;gap:10px;align-items:center}
-.photo-pick .ph{width:76px;height:76px;flex:none}
+.photo-pick .ph{width:80px;height:80px;flex:none}
 .vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
 .sec{display:flex;flex-direction:column;gap:8px}
 .btns{display:flex;gap:8px;flex-wrap:wrap}
-.btn{font-size:16px;font-weight:600;padding:11px 16px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);flex:1}
+.btn{font-size:17px;font-weight:600;padding:11px 16px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);flex:1}
 .btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .btn.del{color:var(--danger);flex:none}
 .btn:disabled{opacity:.5}
-.err{color:var(--danger);font-size:15px}
-.help{font-size:15px;color:var(--muted);line-height:1.6;margin:0}
+.err{color:var(--danger);font-size:16px}
+.help{font-size:16px;color:var(--muted);line-height:1.6;margin:0}
 .help code{background:var(--bg);padding:1px 6px;border-radius:5px;font-family:inherit}
 .tablewrap{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
+table{border-collapse:collapse;width:100%;font-size:16px}
 th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left;white-space:normal}
 th{color:var(--muted);font-weight:500}
 tr.bad td{color:var(--danger)}
+/* sell sheet */
+.sellhead{display:flex;gap:12px;align-items:center}
+.sellhead .ph{width:64px;height:64px;flex:none}
+.qty{display:flex;align-items:center;gap:10px}
+.qty button{width:48px;height:48px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);font-size:24px;font-weight:700}
+.qty output{min-width:48px;text-align:center;font-size:24px;font-weight:700}
+.bigprice{font-size:26px!important;font-weight:700;color:var(--price)}
+.total{font-size:20px}
+.total b{color:var(--price);font-size:26px}
+.hint{font-size:15px;color:var(--warn)}
+/* summary */
 .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
-.stat .k{font-size:15px;color:var(--muted)}
-.stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .k{font-size:16px;color:var(--muted)}
+.stat .v{font-size:24px;font-weight:700}
 .stat .v.g{color:var(--price)}
-.sec h3{margin:12px 0 0;font-size:17px}
+.sec h3{margin:14px 0 0;font-size:19px}
 .mini{display:flex;justify-content:space-between;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-.warnbox{background:#fdebd3;color:#6b3a05;border-radius:10px;padding:10px 12px;font-size:15px}
+.mini span{min-width:0;overflow-wrap:anywhere}
+.mini b{white-space:nowrap}
+.warnbox{background:#fdebd3;color:#6b3a05;border-radius:10px;padding:10px 12px;font-size:16px}
+.okbox{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:16px}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);padding:6px 8px;z-index:8}
-nav button{border:0;background:none;padding:9px 4px;border-radius:10px;font-weight:600;font-size:16px;color:var(--muted)}
+nav button{border:0;background:none;padding:9px 4px;border-radius:10px;font-weight:600;font-size:18px;color:var(--muted)}
 nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft)}
 .sheet-bg{position:fixed;inset:0;background:rgb(0 0 0/.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
 .sheet-bg>.panel{width:100%;max-width:680px;border-radius:18px 18px 0 0;max-height:92vh;overflow-y:auto;box-sizing:border-box}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:78px;background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:12px;display:flex;gap:14px;align-items:center;z-index:30;max-width:calc(100% - 32px);box-sizing:border-box;font-size:16px}
-.toast button{background:none;border:0;color:var(--accent-soft);font-weight:700;text-decoration:underline}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:78px;background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:12px;display:flex;gap:14px;align-items:center;z-index:30;max-width:calc(100% - 32px);box-sizing:border-box;font-size:17px}
+.toast button{background:none;border:0;color:var(--accent-soft);font-weight:700;text-decoration:underline;white-space:nowrap}
 [hidden]{display:none!important}
 </style></head><body>
 
@@ -99,7 +129,8 @@ nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft
     <div class="top"><h1>দামের খাতা</h1><div class="today" id="todayLine"></div></div>
     <div id="searchBox"><input id="q" type="search" placeholder="জিনিসের নাম লিখুন…" autocomplete="off" aria-label="জিনিস খুঁজুন"></div>
     <div class="chips" id="chips"></div>
-    <div class="note" id="note"></div>
+    <div class="noterow" id="noteRow"><div class="note" id="note"></div>
+      <div class="vt" role="group" aria-label="দেখার ধরন"><button type="button" id="vt-list" aria-pressed="true">☰ তালিকা</button><button type="button" id="vt-grid" aria-pressed="false">▦ ছবি</button></div></div>
   </header>
 
   <main>
@@ -109,13 +140,13 @@ nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft
       <div class="panel">
         <div class="seg"><button type="button" id="m-bulk" aria-pressed="true">একসাথে অনেকগুলো</button><button type="button" id="m-one" aria-pressed="false">একটা একটা করে</button></div>
         <div id="bulk" class="sec">
-          <p class="help">প্রতি লাইনে একটা জিনিস: <b>নাম, কয়টা, মোট কত টাকায় কিনলেন, বিক্রির দাম</b>। বাংলা বা ইংরেজি সংখ্যা দুটোই চলবে। বিক্রির দাম না লিখলে ৩০% লাভ ধরে বসবে।<br>যেমন: <code>লুঙ্গি চেক ১২ ১২০০ ১৪০</code></p>
+          <p class="help">প্রতি লাইনে একটা জিনিস: <b>নাম, কয়টা, মোট কত টাকায় কিনলেন, বিক্রির দাম</b>। বিক্রির দাম না লিখলে ৩০% লাভ ধরে বসবে।<br>যেমন: <code>লুঙ্গি চেক ১২ ১২০০ ১৪০</code></p>
           <label class="f">তালিকা<textarea id="b-text" placeholder="লুঙ্গি চেক ১২ ১২০০ ১৪০&#10;প্লাস্টিক জগ ১২ ৮৪০ ৯৫&#10;চুড়ি সেট ১২ ২৪০"></textarea></label>
           <div class="two">
             <label class="f">ধরন (সবগুলোর)<select id="b-cat"></select></label>
             <label class="f">মোট গাড়ি ভাড়া/পার্সেল (৳)<input id="b-fare" inputmode="decimal" placeholder="যেমন ৩০০"></label>
           </div>
-          <label class="f">কোথা থেকে কেনা<input id="b-src" placeholder="যেমন চকবাজার"></label>
+          <div class="f">কোথা থেকে কেনা<select id="b-srcsel"></select><input id="b-src" placeholder="জায়গার নাম লিখুন" hidden></div>
           <div id="b-prev"></div>
           <button type="button" class="btn primary" id="b-save" disabled>সব সেভ করুন</button>
         </div>
@@ -127,15 +158,15 @@ nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft
           <label class="f">নাম<input id="o-name" required placeholder="যেমন: লুঙ্গি চেক"></label>
           <div class="two">
             <label class="f">ধরন<select id="o-cat"></select></label>
-            <label class="f">কোথা থেকে<input id="o-src" placeholder="চকবাজার"></label>
+            <div class="f">কোথা থেকে<select id="o-srcsel"></select><input id="o-src" placeholder="জায়গার নাম" hidden></div>
           </div>
           <div class="two">
-            <label class="f">কয়টা কিনেছেন<input id="o-qty" inputmode="numeric" value="12"></label>
-            <label class="f">মোট কেনা দাম (৳)<input id="o-total" inputmode="decimal" placeholder="1200"></label>
+            <label class="f">কয়টা কিনেছেন<input id="o-qty" inputmode="numeric" value="১২"></label>
+            <label class="f">মোট কেনা দাম (৳)<input id="o-total" inputmode="decimal" placeholder="১২০০"></label>
           </div>
           <div class="two">
-            <label class="f">ভাড়া/পার্সেল (৳)<input id="o-fare" inputmode="decimal" placeholder="0"></label>
-            <label class="f">বিক্রির দাম (৳)<input id="o-sell" inputmode="decimal" placeholder="140"></label>
+            <label class="f">ভাড়া/পার্সেল (৳)<input id="o-fare" inputmode="decimal" placeholder="০"></label>
+            <label class="f">বিক্রির দাম (৳)<input id="o-sell" inputmode="decimal" placeholder="১৪০"></label>
           </div>
           <div class="calc" id="o-calc"></div>
           <div class="err" id="o-err"></div>
@@ -154,6 +185,24 @@ nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft
   <button type="button" data-v="sum">হিসাব</button>
 </nav>
 
+<!-- sell confirm -->
+<div class="sheet-bg" id="sellBg" hidden>
+  <form class="panel" id="sellForm">
+    <div class="sellhead"><div class="ph" id="s-ph"></div><div><h2 id="s-name"></h2><div class="sub" id="s-left"></div></div></div>
+    <div class="two">
+      <div class="f">কয়টা<div class="qty"><button type="button" id="s-minus">−</button><output id="s-qty">১</output><button type="button" id="s-plus">+</button></div></div>
+      <label class="f">প্রতিটার দাম (৳)<input id="s-price" class="bigprice" inputmode="decimal"></label>
+    </div>
+    <div class="hint" id="s-hint"></div>
+    <div class="total" id="s-total"></div>
+    <div class="btns">
+      <button type="button" class="btn" id="s-cancel">বাতিল</button>
+      <button type="submit" class="btn primary">বিক্রি করুন</button>
+    </div>
+  </form>
+</div>
+
+<!-- edit -->
 <div class="sheet-bg" id="editBg" hidden>
   <form class="panel" id="edit">
     <h2>জিনিস বদলান</h2>
@@ -164,7 +213,7 @@ nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft
     <label class="f">নাম<input id="e-name" required></label>
     <div class="two">
       <label class="f">ধরন<select id="e-cat"></select></label>
-      <label class="f">কোথা থেকে<input id="e-src"></label>
+      <div class="f">কোথা থেকে<select id="e-srcsel"></select><input id="e-src" placeholder="জায়গার নাম" hidden></div>
     </div>
     <div class="two">
       <label class="f">মোট কিনেছেন (কয়টা)<input id="e-qty" inputmode="numeric"></label>
@@ -179,8 +228,8 @@ nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft
     <div class="calc" style="background:var(--bg)">
       <b>নতুন মাল এসেছে?</b> একই জিনিস আবার কিনলে এখানে লিখুন, আগের সাথে যোগ হবে।
       <div class="two" style="margin-top:8px">
-        <label class="f">আরও কয়টা<input id="e-addq" inputmode="numeric" placeholder="12"></label>
-        <label class="f">ওগুলোর দাম + ভাড়া (৳)<input id="e-addt" inputmode="decimal" placeholder="1250"></label>
+        <label class="f">আরও কয়টা<input id="e-addq" inputmode="numeric" placeholder="১২"></label>
+        <label class="f">ওগুলোর দাম + ভাড়া (৳)<input id="e-addt" inputmode="decimal" placeholder="১২৫০"></label>
       </div>
     </div>
     <div class="err" id="e-err"></div>
@@ -197,32 +246,44 @@ nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
+const APPV="1.1";
+const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED=__SEED__;
 const NATIVE=typeof window.Android!=="undefined";
 const CATS=["কাপড়","প্লাস্টিক","খেলনা","মেয়েদের জিনিস","মুদি","অন্যান্য"];
+const PLACES=["চকবাজার","বাবুরহাট","ইসলামপুর","গুলিস্তান","বঙ্গবাজার","নরসিংদী বাজার","স্থানীয় বাজার"];
+const OTHER="__other__";
 const $=id=>document.getElementById(id);
 const BN="০১২৩৪৫৬৭৮৯";
 const toEn=s=>String(s??"").replace(/[০-৯]/g,d=>BN.indexOf(d));
 const num=s=>{const v=parseFloat(toEn(s).replace(/[,\s৳]/g,""));return isFinite(v)?v:0};
-const bn=n=>Math.round(n).toLocaleString("en-IN");
+const bn=n=>Math.round(n).toLocaleString("bn-BD");
+const bnRaw=n=>String(Math.round(n)).replace(/\d/g,d=>BN[d]);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const dayKey=(d=new Date())=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const bnDate=k=>{const [y,m,d]=k.split("-");return bnRaw(+d)+"/"+bnRaw(+m)+"/"+bnRaw(+y)};
 const roundUp5=n=>Math.ceil(n/5)*5;
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
 /* ---------- storage: one JSON on the phone ---------- */
-let S={v:1,items:[],days:{},lastBackup:0};
+const BLANK=()=>({v:2,items:[],days:{},sales:[],lastBackup:0,prefs:{view:"list",driveUrl:"",driveKey:"",lastDrive:0,lastDriveTry:0,dirty:false}});
+let S=BLANK();
+function normalize(d){
+  const s=Object.assign(BLANK(),d);s.prefs=Object.assign(BLANK().prefs,d.prefs||{});
+  if(!Array.isArray(s.sales))s.sales=[];
+  s.items.forEach(it=>{if(it.rev==null)it.rev=(it.sold||0)*(it.sell||0)});
+  return s;
+}
 function loadState(){
   let raw=null;
   try{raw=NATIVE?Android.load():localStorage.getItem("dokan-data")}catch(e){}
-  if(raw){try{const d=JSON.parse(raw);if(d&&Array.isArray(d.items)){S=Object.assign({v:1,items:[],days:{},lastBackup:0},d);return}}catch(e){}}
-  S=Object.assign({v:1,items:[],days:{},lastBackup:0},JSON.parse(JSON.stringify(SEED)));saveNow();
+  if(raw){try{const d=JSON.parse(raw);if(d&&Array.isArray(d.items)){S=normalize(d);return}}catch(e){}}
+  S=normalize(JSON.parse(JSON.stringify(SEED)));saveNow();
 }
 function saveNow(){const s=JSON.stringify(S);try{NATIVE?Android.save(s):localStorage.setItem("dokan-data",s)}catch(e){toast("সেভ হয়নি! ফোনে জায়গা আছে কিনা দেখুন।")}}
-let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(saveNow,150)}
-document.addEventListener("visibilitychange",()=>{if(document.hidden){clearTimeout(saveT);saveNow()}});
+let saveT;function save(){S.prefs.dirty=true;clearTimeout(saveT);saveT=setTimeout(saveNow,150)}
+document.addEventListener("visibilitychange",()=>{if(document.hidden){clearTimeout(saveT);saveNow();autoDrive()}});
 const today=()=>S.days[dayKey()]||(S.days[dayKey()]={n:0,rev:0,profit:0});
-
 const unit=it=>it.qty>0&&it.total>0?(it.total+(it.fare||0))/it.qty:null;
 const left=it=>Math.max(0,(it.qty||0)-(it.sold||0));
 
@@ -235,12 +296,23 @@ $("q").oninput=render;
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 function show(v){view=v;["list","add","sum"].forEach(x=>$("v-"+x).hidden=x!==v);
   document.querySelectorAll("nav button").forEach(b=>{if(b.dataset.v===v)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")});
-  $("searchBox").hidden=$("chips").hidden=v!=="list";if(v==="sum")renderSum();window.scrollTo(0,0)}
+  $("searchBox").hidden=$("chips").hidden=$("noteRow").hidden=v!=="list";
+  if(v==="sum")renderSum();if(v==="add")fillPlaces();window.scrollTo(0,0)}
+function setLayout(g,quiet){S.prefs.view=g?"grid":"list";$("vt-grid").setAttribute("aria-pressed",g);$("vt-list").setAttribute("aria-pressed",!g);$("list").classList.toggle("grid",g);if(!quiet){saveNow();render()}}
+$("vt-list").onclick=()=>setLayout(false);$("vt-grid").onclick=()=>setLayout(true);
 let toastT;
 function toast(msg,btnText,fn,ms){$("toastMsg").textContent=msg;const b=$("toastBtn");b.hidden=!btnText;b.textContent=btnText||"";b.onclick=()=>{$("toast").hidden=true;fn&&fn()};
   $("toast").hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>$("toast").hidden=true,ms||(btnText?5000:2500))}
-/* Android back button */
-window.onBack=()=>{if(!$("editBg").hidden){closeEdit();return true}if(view!=="list"){show("list");return true}return false};
+window.onBack=()=>{if(!$("sellBg").hidden){$("sellBg").hidden=true;return true}if(!$("editBg").hidden){closeEdit();return true}if(view!=="list"){show("list");return true}return false};
+
+/* ---------- places dropdown ---------- */
+function places(){const used=[...new Set(S.items.map(i=>i.src).filter(Boolean))];return [...used,...PLACES.filter(p=>!used.includes(p))]}
+function fillPlaces(){["b","o","e"].forEach(p=>{const sel=$(p+"-srcsel"),cur=sel.value;sel.innerHTML=`<option value="">— বেছে নিন —</option>`+places().map(x=>`<option>${esc(x)}</option>`).join("")+`<option value="${OTHER}">অন্য জায়গা…</option>`;
+  if(cur&&[...sel.options].some(o=>o.value===cur))sel.value=cur;$(p+"-src").hidden=sel.value!==OTHER})}
+["b","o","e"].forEach(p=>$(p+"-srcsel").onchange=()=>{const o=$(p+"-srcsel").value===OTHER;$(p+"-src").hidden=!o;if(o)$(p+"-src").focus()});
+const getSrc=p=>$(p+"-srcsel").value===OTHER?$(p+"-src").value.trim():$(p+"-srcsel").value;
+function setSrc(p,v){fillPlaces();const sel=$(p+"-srcsel");if(!v){sel.value="";$(p+"-src").hidden=true;return}
+  if([...sel.options].some(o=>o.value===v))sel.value=v;else{sel.value=OTHER;$(p+"-src").value=v}$(p+"-src").hidden=sel.value!==OTHER}
 
 /* ---------- list ---------- */
 function phHtml(it){return it.thumb?`<img src="${esc(it.thumb)}" alt="" loading="lazy">`:esc((it.name||"?").trim().charAt(0))}
@@ -249,25 +321,44 @@ function render(){
   const list=S.items.filter(it=>(cat==="সব"||(cat==="কম আছে"?left(it)<=2:it.cat===cat))&&(!s||toEn(it.name.toLowerCase()).includes(s)))
     .sort((a,b)=>a.name.localeCompare(b.name,"bn"));
   $("todayLine").innerHTML=`আজ বিক্রি: <b>${bn(today().n)}টা</b>`;
-  $("note").textContent=S.items.length?`${bn(S.items.length)} রকম জিনিস · নামে চাপ দিলে বদলানো যাবে`:"";
+  $("note").textContent=S.items.length?`${bn(S.items.length)} রকম জিনিস`:"";
   if(!S.items.length){$("list").innerHTML=`<div class="empty">এখনো কোনো জিনিস নেই।<br>নিচে <b>মাল যোগ</b> চাপুন। একসাথে অনেকগুলো লিখে দিতে পারবেন।</div>`;return}
   if(!list.length){$("list").innerHTML=`<div class="empty">"${esc($("q").value)}" পাওয়া যায়নি।</div>`;return}
   $("list").innerHTML=list.map(it=>{const l=left(it);
     return `<div class="item" data-id="${esc(it.id)}">
       <button type="button" class="ph" data-edit>${phHtml(it)}</button>
       <button type="button" class="mid" data-edit><div class="nm">${esc(it.name)}</div>
-        <div class="sub"><span class="stock ${l===0?"out":l<=2?"low":""}">${l===0?"শেষ":"আছে "+bn(l)+"টা"}</span>${it.cat?`<span>${esc(it.cat)}</span>`:""}</div></button>
-      <div class="right"><div class="price">৳${bn(it.sell)}</div><button type="button" class="sell" data-sell ${l===0?"disabled":""}>বিক্রি −১</button></div></div>`}).join("");
+        <div class="sub"><span class="stock ${l===0?"out":l<=2?"low":""}">${l===0?"শেষ":"আছে "+bn(l)+"টা"}</span>${it.cat&&S.prefs.view!=="grid"?`<span>${esc(it.cat)}</span>`:""}</div></button>
+      <div class="right"><div class="price">৳${bn(it.sell)}</div><button type="button" class="sell" data-sell ${l===0?"disabled":""}>বিক্রি</button></div></div>`}).join("");
 }
 $("list").onclick=e=>{const row=e.target.closest(".item");if(!row)return;const it=S.items.find(i=>i.id===row.dataset.id);if(!it)return;
-  if(e.target.closest("[data-sell]"))sell(it,1);else if(e.target.closest("[data-edit]"))openEdit(it)};
-function sell(it,d){
-  const sold=Math.max(0,(it.sold||0)+d);if(sold>it.qty)return;
-  const u=unit(it)??0,t=today();
-  it.sold=sold;t.n+=d;t.rev+=d*it.sell;t.profit+=d*(it.sell-u);
+  if(e.target.closest("[data-sell]"))openSell(it);else if(e.target.closest("[data-edit]"))openEdit(it)};
+
+/* ---------- sell with confirm ---------- */
+let selling=null,sQty=1;
+function openSell(it){selling=it;sQty=1;
+  $("s-ph").innerHTML=phHtml(it);$("s-name").textContent=it.name;$("s-left").textContent=`দোকানে আছে ${bn(left(it))}টা`;
+  $("s-price").value=bnRaw(it.sell);$("sellBg").hidden=false;sCalc()}
+function sCalc(){$("s-qty").textContent=bn(sQty);const p=num($("s-price").value),u=unit(selling);
+  $("s-total").innerHTML=`মোট: <b>৳${bn(p*sQty)}</b>`;
+  $("s-hint").textContent=p<selling.sell?(u!=null&&p<u?"এই দামে লোকসান হবে!":`নির্ধারিত দামের চেয়ে ৳${bn(selling.sell-p)} কম`):"";
+  $("s-minus").disabled=sQty<=1;$("s-plus").disabled=sQty>=left(selling)}
+$("s-minus").onclick=()=>{if(sQty>1){sQty--;sCalc()}};$("s-plus").onclick=()=>{if(sQty<left(selling)){sQty++;sCalc()}};
+$("s-price").oninput=sCalc;$("s-cancel").onclick=()=>$("sellBg").hidden=true;
+$("sellBg").onclick=e=>{if(e.target===$("sellBg"))$("sellBg").hidden=true};
+$("sellForm").onsubmit=e=>{e.preventDefault();const p=num($("s-price").value);if(!(p>0)){$("s-hint").textContent="দাম লিখুন।";return}
+  $("sellBg").hidden=true;doSale(selling,sQty,p)};
+function doSale(it,q,p){
+  const u=unit(it)??0,t=today(),sale={id:newId(),t:Date.now(),item:it.id,name:it.name,qty:q,price:p,cost:u};
+  it.sold=(it.sold||0)+q;it.rev=(it.rev||0)+q*p;t.n+=q;t.rev+=q*p;t.profit+=q*(p-u);S.sales.push(sale);
+  if(S.sales.length>3000)S.sales=S.sales.slice(-3000);
   save();render();
-  if(d>0)toast(`${it.name}: ১টা বিক্রি, ৳${bn(it.sell)}`,"ফেরত",()=>sell(it,-1));else toast("ফেরত নেওয়া হলো");
+  toast(`${it.name}: ${bn(q)}টা বিক্রি, ৳${bn(q*p)}`,"ফেরত",()=>undoSale(sale),6000);
 }
+function undoSale(sale){const it=S.items.find(i=>i.id===sale.item),t=S.days[dayKey(new Date(sale.t))];
+  if(it){it.sold=Math.max(0,(it.sold||0)-sale.qty);it.rev=Math.max(0,(it.rev||0)-sale.qty*sale.price)}
+  if(t){t.n-=sale.qty;t.rev-=sale.qty*sale.price;t.profit-=sale.qty*(sale.price-sale.cost)}
+  S.sales=S.sales.filter(s=>s.id!==sale.id);save();render();if(view==="sum")renderSum();toast("বিক্রি ফেরত নেওয়া হলো")}
 
 /* ---------- photos ---------- */
 const slots={o:null,e:null};let photoSlot=null;
@@ -294,14 +385,14 @@ function oCalc(){$("o-calc").innerHTML=calcHtml(num($("o-qty").value),num($("o-t
 function eCalc(){$("e-calc").innerHTML=calcHtml(num($("e-qty").value),num($("e-total").value),num($("e-fare").value),num($("e-sell").value),"e-sell")}
 ["o-qty","o-total","o-fare","o-sell"].forEach(id=>$(id).oninput=oCalc);
 ["e-qty","e-total","e-fare","e-sell"].forEach(id=>$(id).oninput=eCalc);
-document.addEventListener("click",e=>{const b=e.target.closest("[data-set]");if(!b)return;$(b.dataset.set).value=b.dataset.v;b.dataset.set[0]==="o"?oCalc():eCalc()});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-set]");if(!b)return;$(b.dataset.set).value=bnRaw(+b.dataset.v);b.dataset.set[0]==="o"?oCalc():eCalc()});
 $("one").onsubmit=e=>{
   e.preventDefault();$("o-err").textContent="";
-  const d={id:newId(),name:$("o-name").value.trim(),cat:$("o-cat").value,src:$("o-src").value.trim(),qty:num($("o-qty").value),sold:0,total:num($("o-total").value),fare:num($("o-fare").value),sell:num($("o-sell").value),updated:Date.now()};
+  const d={id:newId(),name:$("o-name").value.trim(),cat:$("o-cat").value,src:getSrc("o"),qty:num($("o-qty").value),sold:0,rev:0,total:num($("o-total").value),fare:num($("o-fare").value),sell:num($("o-sell").value),updated:Date.now()};
   if(!d.name){$("o-err").textContent="নাম লিখুন।";return}
   if(!(d.sell>0)){const u=d.qty>0&&d.total>0?(d.total+d.fare)/d.qty:0;if(u)d.sell=roundUp5(u*1.3);else{$("o-err").textContent="বিক্রির দাম লিখুন।";return}}
   if(slots.o)d.thumb=slots.o;
-  S.items.push(d);save();render();toast(`${d.name} সেভ হলো`);
+  S.items.push(d);save();render();fillPlaces();toast(`${d.name} সেভ হলো`);
   ["o-name","o-total","o-fare","o-sell"].forEach(id=>$(id).value="");setPhoto("o",null);oCalc();$("o-name").focus();
 };
 oCalc();
@@ -329,9 +420,9 @@ function parseBulk(){
 ["b-text","b-fare"].forEach(id=>$(id).oninput=parseBulk);
 $("b-save").onclick=()=>{
   const ok=parsed.filter(p=>!p.bad);if(!ok.length)return;
-  const c=$("b-cat").value,src=$("b-src").value.trim(),t=Date.now();
-  ok.forEach((p,i)=>S.items.push({id:newId()+i,name:p.name,cat:c,src,qty:p.qty,sold:0,total:p.total,fare:p.fare,sell:p.sell,updated:t+i}));
-  save();render();toast(`${bn(ok.length)}টা জিনিস সেভ হলো`);
+  const c=$("b-cat").value,src=getSrc("b"),t=Date.now();
+  ok.forEach((p,i)=>S.items.push({id:newId()+i,name:p.name,cat:c,src,qty:p.qty,sold:0,rev:0,total:p.total,fare:p.fare,sell:p.sell,updated:t+i}));
+  save();render();fillPlaces();toast(`${bn(ok.length)}টা জিনিস সেভ হলো`);
   $("b-text").value="";$("b-fare").value="";parseBulk();
 };
 
@@ -340,8 +431,8 @@ let editing=null,delArm=false;
 function openEdit(it){
   editing=it;$("e-err").textContent="";slots.e=null;
   $("e-ph").innerHTML=it.thumb?`<img src="${esc(it.thumb)}" alt="">`:"📷";
-  $("e-name").value=it.name;$("e-cat").value=it.cat||"অন্যান্য";$("e-src").value=it.src||"";
-  $("e-qty").value=it.qty||0;$("e-sold").value=it.sold||0;$("e-total").value=it.total||0;$("e-fare").value=it.fare||0;$("e-sell").value=it.sell||0;
+  $("e-name").value=it.name;$("e-cat").value=it.cat||"অন্যান্য";setSrc("e",it.src||"");
+  $("e-qty").value=bnRaw(it.qty||0);$("e-sold").value=bnRaw(it.sold||0);$("e-total").value=bnRaw(it.total||0);$("e-fare").value=bnRaw(it.fare||0);$("e-sell").value=bnRaw(it.sell||0);
   $("e-addq").value="";$("e-addt").value="";delArm=false;$("e-del").textContent="মুছুন";
   $("editBg").hidden=false;eCalc();
 }
@@ -356,44 +447,66 @@ $("edit").onsubmit=e=>{
   e.preventDefault();const it=editing;if(!it)return;
   const name=$("e-name").value.trim(),sellP=num($("e-sell").value);
   if(!name||!(sellP>0)){$("e-err").textContent="নাম আর বিক্রির দাম দিতে হবে।";return}
-  Object.assign(it,{name,cat:$("e-cat").value,src:$("e-src").value.trim(),qty:num($("e-qty").value)+num($("e-addq").value),sold:num($("e-sold").value),
+  const newSold=num($("e-sold").value);
+  if(newSold!==(it.sold||0)){it.rev=(it.rev||0)+(newSold-(it.sold||0))*sellP;if(it.rev<0)it.rev=0}
+  Object.assign(it,{name,cat:$("e-cat").value,src:getSrc("e"),qty:num($("e-qty").value)+num($("e-addq").value),sold:newSold,
     total:num($("e-total").value)+num($("e-addt").value),fare:num($("e-fare").value),sell:sellP,updated:Date.now()});
   if(it.sold>it.qty)it.sold=it.qty;
   if(slots.e)it.thumb=slots.e;
   closeEdit();save();render();toast("সেভ হলো");
 };
 
-/* ---------- summary + backup ---------- */
+/* ---------- summary ---------- */
 function renderSum(){
-  const st=S.items.reduce((a,it)=>{const l=left(it),u=unit(it)??0;a.pcs+=l;a.costV+=l*u;a.sellV+=l*it.sell;a.fare+=it.fare||0;a.spent+=(it.total||0)+(it.fare||0);a.soldV+=(it.sold||0)*it.sell;a.prof+=(it.sold||0)*(it.sell-u);return a},{pcs:0,costV:0,sellV:0,fare:0,spent:0,soldV:0,prof:0});
+  const st=S.items.reduce((a,it)=>{const l=left(it),u=unit(it)??0,rev=it.rev??(it.sold||0)*it.sell;a.pcs+=l;a.costV+=l*u;a.sellV+=l*it.sell;a.fare+=it.fare||0;a.spent+=(it.total||0)+(it.fare||0);a.soldV+=rev;a.prof+=rev-(it.sold||0)*u;return a},{pcs:0,costV:0,sellV:0,fare:0,spent:0,soldV:0,prof:0});
   const low=S.items.filter(it=>left(it)<=2).sort((a,b)=>left(a)-left(b));
   const top=S.items.filter(it=>it.sold>0).sort((a,b)=>(b.sold||0)-(a.sold||0)).slice(0,5);
   const recent=Object.keys(S.days).sort().reverse().slice(0,7);
-  const t=today();
+  const t=today(),todaySales=S.sales.filter(s=>dayKey(new Date(s.t))===dayKey()).reverse();
   const since=S.lastBackup?Math.floor((Date.now()-S.lastBackup)/864e5):null;
+  const P=S.prefs;
   $("sum").innerHTML=`
-  ${since===null||since>=7?`<div class="warnbox" style="margin-bottom:8px">${since===null?"এখনো কোনো Backup নেওয়া হয়নি।":`শেষ Backup ${bn(since)} দিন আগে।`} নিচের <b>Backup নিন</b> চাপুন, যাতে ফোন হারালেও হিসাব না হারায়।</div>`:""}
+  ${!P.driveUrl&&(since===null||since>=7)?`<div class="warnbox" style="margin-bottom:8px">${since===null?"এখনো কোনো Backup নেওয়া হয়নি।":`শেষ Backup ${bn(since)} দিন আগে।`} নিচে Backup অংশ দেখুন।</div>`:""}
   <div class="stats">
     <div class="stat"><div class="k">আজ বিক্রি</div><div class="v g">৳${bn(t.rev)}</div><div class="k">${bn(t.n)}টা · লাভ ৳${bn(t.profit)}</div></div>
     <div class="stat"><div class="k">এ পর্যন্ত মোট লাভ</div><div class="v g">৳${bn(st.prof)}</div><div class="k">বিক্রি ৳${bn(st.soldV)}</div></div>
     <div class="stat"><div class="k">মাল কিনতে মোট খরচ</div><div class="v">৳${bn(st.spent)}</div><div class="k">এর মধ্যে ভাড়া ৳${bn(st.fare)}</div></div>
     <div class="stat"><div class="k">দোকানে মাল আছে</div><div class="v">${bn(st.pcs)}টা</div><div class="k">কেনা দামে ৳${bn(st.costV)} · বেচলে ৳${bn(st.sellV)}</div></div>
   </div>
+  <div class="sec"><h3>আজকের বিক্রি</h3>${todaySales.length?todaySales.map(s=>`<div class="mini"><span>${esc(s.name)} × ${bn(s.qty)}</span><b>৳${bn(s.qty*s.price)}</b></div>`).join(""):`<p class="help">আজ এখনো কিছু বিক্রি হয়নি।</p>`}</div>
   <div class="sec"><h3>আবার আনতে হবে (২টা বা কম)</h3>${low.length?low.map(it=>`<div class="mini"><span>${esc(it.name)}</span><b class="stock ${left(it)?"low":"out"}">${left(it)?"আছে "+bn(left(it))+"টা":"শেষ"}</b></div>`).join(""):`<p class="help">সব জিনিসই যথেষ্ট আছে।</p>`}</div>
   <div class="sec"><h3>সবচেয়ে বেশি বিক্রি</h3>${top.length?top.map(it=>`<div class="mini"><span>${esc(it.name)}</span><b>${bn(it.sold)}টা</b></div>`).join(""):`<p class="help">এখনো কিছু বিক্রি হয়নি।</p>`}</div>
-  <div class="sec"><h3>গত কয়েকদিনের বিক্রি</h3>${recent.length?recent.map(k=>`<div class="mini"><span>${k}</span><b>৳${bn(S.days[k].rev||0)} · লাভ ৳${bn(S.days[k].profit||0)}</b></div>`).join(""):`<p class="help">বিক্রি শুরু হলে দিনের হিসাব এখানে জমবে।</p>`}</div>
-  <div class="sec"><h3>Backup</h3>
-    <p class="help">Backup নিলে একটা ফাইল ফোনের Download/Dokan ফোল্ডারে সেভ হবে, আর সাথে সাথে Drive বা WhatsApp-এ পাঠানোর অপশন আসবে। নতুন ফোনে app install করে <b>Backup থেকে ফেরত আনুন</b> চাপলে সব ফিরে আসবে।</p>
-    <div class="btns"><button type="button" class="btn primary" id="bk-save">Backup নিন</button><button type="button" class="btn" id="bk-load">Backup থেকে ফেরত আনুন</button></div>
+  <div class="sec"><h3>গত কয়েকদিনের বিক্রি</h3>${recent.length?recent.map(k=>`<div class="mini"><span>${bnDate(k)}</span><b>৳${bn(S.days[k].rev||0)} · লাভ ৳${bn(S.days[k].profit||0)}</b></div>`).join(""):`<p class="help">বিক্রি শুরু হলে দিনের হিসাব এখানে জমবে।</p>`}</div>
+
+  <div class="sec"><h3>Google Drive-এ নিজে থেকে Backup</h3>
+    ${P.driveUrl?`<div class="okbox">চালু আছে। Internet পেলেই হিসাব Drive-এর <b>Dokan Backup</b> ফোল্ডারে চলে যায়।<br>শেষ Drive backup: <b>${P.lastDrive?bnTime(P.lastDrive):"এখনো হয়নি"}</b></div>
+      <div class="btns"><button type="button" class="btn primary" id="dr-now">এখনই Drive-এ পাঠান</button><button type="button" class="btn" id="dr-off">বন্ধ করুন</button></div>`
+    :`<p class="help">একবার সেট করলে internet পেলেই হিসাব নিজে থেকে আপনার Google Drive-এ চলে যাবে। সেট করার নিয়ম Claude-এর কাছে আছে। শেষে যে লিংক পাবেন সেটা এখানে দিন:</p>
+      <label class="f">Drive Backup লিংক<input id="dr-url" placeholder="https://script.google.com/macros/s/…/exec" inputmode="url" autocomplete="off"></label>
+      <button type="button" class="btn primary" id="dr-save">চালু করুন</button>`}
   </div>
-  <p class="help" style="margin-top:16px;text-align:center">app version ${APPV}</p>`;
+  <div class="sec"><h3>ফোনে Backup</h3>
+    <p class="help">ফাইলটা ফোনের Download/Dokan ফোল্ডারে সেভ হবে, সাথে WhatsApp বা Drive-এ পাঠানোর অপশন আসবে। নতুন ফোনে <b>Backup থেকে ফেরত আনুন</b> চাপলে সব ফিরে আসবে।</p>
+    <div class="btns"><button type="button" class="btn" id="bk-save">Backup নিন</button><button type="button" class="btn" id="bk-load">Backup থেকে ফেরত আনুন</button></div>
+  </div>
+  <div class="sec"><h3>App Update</h3>
+    <div class="btns"><button type="button" class="btn" id="up-check">নতুন version আছে কিনা দেখুন</button></div>
+    <p class="help" style="text-align:center">এখনকার version ${bnVer(APPV)}</p>
+  </div>`;
   $("bk-save").onclick=doBackup;$("bk-load").onclick=()=>{if(NATIVE)Android.pickBackup();else $("fileBak").click()};
+  $("up-check").onclick=checkUpdate;
+  if(P.driveUrl){$("dr-now").onclick=()=>driveBackup(true);$("dr-off").onclick=()=>{S.prefs.driveUrl="";saveNow();renderSum()}}
+  else $("dr-save").onclick=()=>{const u=$("dr-url").value.trim();if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/.test(u)){toast("লিংকটা ঠিক না। script.google.com দিয়ে শুরু, /exec দিয়ে শেষ হওয়া লিংক দিন।",null,null,5000);return}
+    S.prefs.driveUrl=u.split("?")[0];if(!S.prefs.driveKey)S.prefs.driveKey=newId()+newId();saveNow();driveBackup(true)};
 }
-const APPV="1.0";
+const bnVer=v=>v.replace(/\d/g,d=>BN[d]);
+const bnTime=ms=>{const d=new Date(ms);return bnDate(dayKey(d))+" "+bnRaw(d.getHours())+":"+bnRaw(d.getMinutes()).padStart(2,"০")};
+
+/* ---------- phone backup ---------- */
 function doBackup(){
   S.lastBackup=Date.now();saveNow();
   const json=JSON.stringify(S),name="dokan-backup-"+dayKey()+".json";
-  if(NATIVE){Android.backup(name,json)}
+  if(NATIVE)Android.backup(name,json);
   else{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([json],{type:"application/json"}));a.download=name;a.click();toast("Backup ফাইল নামানো হলো")}
   if(view==="sum")renderSum();
 }
@@ -402,16 +515,48 @@ let pendingRestore=null;
 function restoreText(txt){
   try{const d=JSON.parse(txt);if(!d||!Array.isArray(d.items))throw 0;pendingRestore=d}catch(e){toast("এটা দামের খাতার Backup ফাইল না।");return}
   toast(`Backup-এ ${bn(pendingRestore.items.length)}টা জিনিস আছে। এখনকার হিসাব মুছে এটা বসাবেন?`,"হ্যাঁ, বসান",()=>{
-    S=Object.assign({v:1,items:[],days:{},lastBackup:0},pendingRestore);saveNow();render();if(view==="sum")renderSum();toast("Backup থেকে সব ফিরে এসেছে")},9000);
+    const keep=S.prefs;S=normalize(pendingRestore);if(!S.prefs.driveUrl&&keep.driveUrl){S.prefs.driveUrl=keep.driveUrl;S.prefs.driveKey=keep.driveKey}
+    saveNow();render();if(view==="sum")renderSum();toast("Backup থেকে সব ফিরে এসেছে")},9000);
 }
 window.onBackup=b64=>{try{restoreText(new TextDecoder().decode(Uint8Array.from(atob(b64),c=>c.charCodeAt(0))))}catch(e){toast("ফাইলটা পড়া যায়নি।")}};
 $("fileBak").onchange=async()=>{const f=$("fileBak").files[0];$("fileBak").value="";if(f)restoreText(await f.text())};
 
+/* ---------- Google Drive auto backup (through the user's own Apps Script) ---------- */
+let driveBusy=false;
+async function driveBackup(manual){
+  const P=S.prefs;if(!P.driveUrl||driveBusy)return;
+  if(!navigator.onLine){if(manual)toast("Internet নেই। Internet পেলে নিজে থেকে পাঠাবে।");return}
+  driveBusy=true;P.lastDriveTry=Date.now();if(manual)toast("Drive-এ পাঠানো হচ্ছে…",null,null,8000);
+  try{
+    const r=await fetch(P.driveUrl,{method:"POST",body:JSON.stringify({key:P.driveKey,data:S})});
+    const j=await r.json();
+    if(!j.ok)throw new Error(j.err||"fail");
+    P.lastDrive=Date.now();P.dirty=false;saveNow();
+    if(manual)toast("Drive-এ Backup হয়ে গেছে ✓");
+  }catch(e){if(manual)toast(String(e.message)==="key"?"এই Drive লিংকটা অন্য ফোনের সাথে যুক্ত। নতুন লিংক বানাতে হবে।":"Drive-এ পাঠানো যায়নি। লিংক বা internet দেখুন।",null,null,5000)}
+  finally{driveBusy=false;if(view==="sum")renderSum()}
+}
+function autoDrive(){const P=S.prefs;if(!P.driveUrl)return;const now=Date.now();
+  if((P.dirty||now-P.lastDrive>864e5)&&now-P.lastDriveTry>15*60e3)driveBackup(false)}
+window.addEventListener("online",()=>setTimeout(autoDrive,3000));
+
 /* ---------- updates ---------- */
-window.onUpdateReady=()=>toast("app-এর নতুন version এসেছে","এখনই চালু করুন",()=>{saveNow();Android.reload()},12000);
+const verNum=v=>v.split(".").reduce((a,x)=>a*1000+(+x||0),0);
+async function checkUpdate(){
+  if(NATIVE&&typeof Android.checkUpdate==="function"){toast("দেখা হচ্ছে…");Android.checkUpdate();return}
+  if(!navigator.onLine){toast("Internet নেই। Internet চালু করে আবার চেষ্টা করুন।");return}
+  toast("দেখা হচ্ছে…");
+  try{const r=await fetch(REMOTE+"?t="+Date.now(),{cache:"no-store"});const txt=await r.text();const m=txt.match(/const APPV="([\d.]+)"/);
+    if(m&&verNum(m[1])>verNum(APPV))toast(`নতুন version ${bnVer(m[1])} পাওয়া গেছে। app পুরো বন্ধ করে (Recent থেকে সরিয়ে) আবার খুলুন।`,null,null,9000);
+    else toast("আপনার app সবচেয়ে নতুন version-এই আছে ✓")}
+  catch(e){toast("দেখা যায়নি। Internet ঠিক আছে কিনা দেখুন।")}
+}
+window.onUpdateCheck=s=>{if(s==="new")window.onUpdateReady();else if(s==="same")toast("আপনার app সবচেয়ে নতুন version-এই আছে ✓");else toast("দেখা যায়নি। Internet ঠিক আছে কিনা দেখুন।")};
+window.onUpdateReady=()=>toast("app-এর নতুন version এসেছে","এখনই চালু করুন",()=>{saveNow();Android.reload()},15000);
 
 /* ---------- boot ---------- */
-loadState();render();
+loadState();setLayout(S.prefs.view==="grid",true);render();fillPlaces();
 if(NATIVE)try{Android.ready()}catch(e){}
+setTimeout(autoDrive,4000);
 </script>
 </body></html>
