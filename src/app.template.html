@@ -65,6 +65,10 @@ input,select,textarea,button{font:inherit;color:inherit}
 /* forms */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .panel h2{margin:0;font-size:21px}
+.seg3{grid-template-columns:1fr 1fr 1fr!important}
+#t-list td:first-child{min-width:7.5em}
+#t-list tr[data-trit]{cursor:pointer}
+.seg3 button{font-size:15px;padding:8px 4px}
 .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--line);border-radius:10px;padding:3px;gap:3px}
 .seg button{border:0;border-radius:8px;padding:8px;background:none;font-weight:600}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent)}
@@ -173,8 +177,9 @@ input:disabled{opacity:.6}
 
     <section id="v-add" hidden>
       <div class="panel">
-        <div class="seg"><button type="button" id="m-bulk" aria-pressed="true">একসাথে অনেকগুলো</button><button type="button" id="m-one" aria-pressed="false">একটা একটা করে</button></div>
-        <div id="bulk" class="sec">
+        <div class="seg seg3"><button type="button" id="m-batch" aria-pressed="true">ব্যাচে কেনাকাটা</button><button type="button" id="m-bulk" aria-pressed="false">লিখে অনেকগুলো</button><button type="button" id="m-one" aria-pressed="false">একটা করে</button></div>
+        <div id="batch" class="sec"></div>
+        <div id="bulk" class="sec" hidden>
           <p class="help">প্রতি লাইনে একটা জিনিস: <b>নাম, কয়টা, মোট কত টাকায় কিনলেন, বিক্রির দাম</b>। বিক্রির দাম না লিখলে ৩০% লাভ ধরে বসবে।<br>যেমন: <code>লুঙ্গি চেক ১২ ১২০০ ১৪০</code></p>
           <label class="f">তালিকা<textarea id="b-text" placeholder="লুঙ্গি চেক ১২ ১২০০ ১৪০&#10;প্লাস্টিক জগ ১২ ৮৪০ ৯৫&#10;চুড়ি সেট ১২ ২৪০"></textarea></label>
           <div class="two">
@@ -274,8 +279,9 @@ input:disabled{opacity:.6}
     </div>
     <div class="two">
       <label class="f">মোট কেনা দাম (৳)<input id="e-total" inputmode="decimal"></label>
-      <label class="f">ভাড়া/পার্সেল (৳)<input id="e-fare" inputmode="decimal"></label>
+      <label class="f" id="e-farebox">ভাড়া/পার্সেল (৳)<input id="e-fare" inputmode="decimal"></label>
     </div>
+    <div class="okbox" id="e-tripnote" hidden></div>
     <div class="costs" id="e-costs"></div>
     <div class="costs" id="e-vars"></div>
     <label class="f">বিক্রির দাম (৳)<input id="e-sell" inputmode="decimal"></label>
@@ -301,7 +307,7 @@ input:disabled{opacity:.6}
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="1.3";
+const APPV="1.4";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED=__SEED__;
 const NATIVE=typeof window.Android!=="undefined";
@@ -321,11 +327,11 @@ const roundUp5=n=>Math.ceil(n/5)*5;
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
 /* ---------- storage: one JSON on the phone ---------- */
-const BLANK=()=>({v:3,items:[],days:{},sales:[],customers:[],loans:[],expenses:[],cash:{},services:[],suppliers:[],shop:[],lastBackup:0,prefs:{view:"list",driveUrl:"",driveKey:"",lastDrive:0,lastDriveTry:0,dirty:false,pin:"",rates:{}}});
+const BLANK=()=>({v:3,trips:[],items:[],days:{},sales:[],customers:[],loans:[],expenses:[],cash:{},services:[],suppliers:[],shop:[],lastBackup:0,prefs:{view:"list",driveUrl:"",driveKey:"",lastDrive:0,lastDriveTry:0,dirty:false,pin:"",rates:{}}});
 let S=BLANK();
 function normalize(d){
   const s=Object.assign(BLANK(),d);s.prefs=Object.assign(BLANK().prefs,d.prefs||{});
-  ["sales","customers","loans","expenses","services","suppliers","shop"].forEach(k=>{if(!Array.isArray(s[k]))s[k]=[]});if(!s.cash||typeof s.cash!=="object")s.cash={};
+  ["sales","customers","loans","expenses","services","suppliers","shop","trips"].forEach(k=>{if(!Array.isArray(s[k]))s[k]=[]});if(!s.cash||typeof s.cash!=="object")s.cash={};
   s.items.forEach(it=>{if(it.rev==null)it.rev=(it.sold||0)*(it.sell||0)});
   return s;
 }
@@ -356,7 +362,7 @@ function show(v){
   view=v;["list","add","sum","more"].forEach(x=>$("v-"+x).hidden=x!==v);
   document.querySelectorAll("nav button").forEach(b=>{if(b.dataset.v===v)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")});
   $("searchBox").hidden=$("chips").hidden=$("noteRow").hidden=v!=="list";
-  if(v==="sum")renderSum();if(v==="more")renderMore();if(v==="add")fillPlaces();window.scrollTo(0,0)}
+  if(v==="sum")renderSum();if(v==="more")renderMore();if(v==="add"){fillPlaces();if(!$("batch").hidden)renderBatch()}window.scrollTo(0,0)}
 function setLayout(g,quiet){S.prefs.view=g?"grid":"list";$("vt-grid").setAttribute("aria-pressed",g);$("vt-list").setAttribute("aria-pressed",!g);$("list").classList.toggle("grid",g);if(!quiet){saveNow();render()}}
 $("vt-list").onclick=()=>setLayout(false);$("vt-grid").onclick=()=>setLayout(true);
 let toastT;
@@ -438,7 +444,7 @@ function undoSale(sale){const it=S.items.find(i=>i.id===sale.item),t=S.days[dayK
   S.sales=S.sales.filter(s=>s.id!==sale.id);save();render();refresh();toast("বিক্রি ফেরত নেওয়া হলো")}
 
 /* ---------- photos ---------- */
-const slots={o:null,e:null};let photoSlot=null;
+const slots={o:null,e:null,t:null};let photoSlot=null;
 function setPhoto(slot,dataUrl){slots[slot]=dataUrl;$(slot+"-ph").innerHTML=dataUrl?`<img src="${dataUrl}" alt="">`:"📷"}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-photo]");if(!b)return;photoSlot=b.dataset.photo;
   if(NATIVE)Android.pickPhoto(photoSlot);else $("fileImg").click()});
@@ -451,13 +457,13 @@ $("fileImg").onchange=async()=>{const f=$("fileImg").files[0];$("fileImg").value
 
 /* ---------- extra costs (labour, courier, market charge, ghat…) ---------- */
 const COSTL=["লেবার","কুরিয়ার","মার্কেট চার্জ","নৌকা ঘাট","টোল","রিকশা/ভ্যান","খাওয়া-দাওয়া","অন্য খরচ"];
-const costs={o:[],e:[],b:[]};
+const costs={o:[],e:[],b:[],t:[]};
 const costSum=p=>costs[p].reduce((a,c)=>a+(+c.a||0),0);
 function drawCosts(p){
   $(p+"-costs").innerHTML=costs[p].map((c,i)=>`<div class="costrow"><select data-cp="${p}" data-ci="${i}" data-k="l" aria-label="খরচের ধরন">${COSTL.map(x=>`<option${x===c.l?" selected":""}>${x}</option>`).join("")}${COSTL.includes(c.l)?"":`<option selected>${esc(c.l)}</option>`}</select><input data-cp="${p}" data-ci="${i}" data-k="a" inputmode="decimal" placeholder="৳" aria-label="টাকা" value="${c.a?bnRaw(c.a):""}"><button type="button" class="x" data-cdel="${i}" data-cp="${p}" aria-label="মুছুন">✕</button></div>`).join("")+
     `<button type="button" class="link addcost" data-cadd="${p}">+ অন্য খরচ যোগ করুন (লেবার, কুরিয়ার, ঘাট…)</button>`;
 }
-const recalc=p=>p==="o"?oCalc():p==="e"?eCalc():parseBulk();
+const recalc=p=>p==="o"?oCalc():p==="e"?eCalc():p==="t"?tripChanged():parseBulk();
 document.addEventListener("input",e=>{const t=e.target;if(!t.dataset||!t.dataset.cp||t.dataset.ci==null)return;const c=costs[t.dataset.cp][+t.dataset.ci];if(!c)return;
   if(t.dataset.k==="a")c.a=num(t.value);else c.l=t.value;recalc(t.dataset.cp)});
 document.addEventListener("change",e=>{const t=e.target;if(t.dataset&&t.dataset.cp&&t.dataset.k==="l"){const c=costs[t.dataset.cp][+t.dataset.ci];if(c)c.l=t.value}});
@@ -466,9 +472,71 @@ document.addEventListener("click",e=>{const a=e.target.closest("[data-cadd]");if
 const cleanCosts=p=>costs[p].filter(c=>c.a>0).map(c=>({l:c.l,a:c.a}));
 ["o","e","b"].forEach(drawCosts);
 
+/* ---------- ব্যাচে কেনাকাটা: one trip, shared fare & costs split over all items ---------- */
+const tripItems=tr=>S.items.filter(i=>i.trip===tr.id);
+const tripCost=tr=>(tr.fare||0)+(tr.extra||[]).reduce((a,c)=>a+(+c.a||0),0);
+function redistribute(tr){
+  const its=tripItems(tr),sumT=its.reduce((a,i)=>a+(i.total||0),0);
+  its.forEach((it,k)=>{const sh=sumT>0?(it.total||0)/sumT:1/its.length;
+    it.fare=Math.round((tr.fare||0)*sh);it.extra=(tr.extra||[]).map(c=>({l:c.l,a:Math.round((+c.a||0)*sh)})).filter(c=>c.a>0);if(it.autoSell&&!it.sold)it.sell=roundUp5((unit(it)||0)*1.3)});
+}
+const openTrip=()=>S.trips.find(t=>t.id===S.prefs.openTrip&&t.open);
+function renderBatch(){
+  const box=$("batch"),tr=openTrip();
+  if(!tr){
+    const recent=[...S.trips].sort((a,b)=>b.t-a.t).slice(0,8);
+    box.innerHTML=`<p class="help">এক বাজার থেকে একবারে যা যা কিনলেন (খেলনা, প্লাস্টিক, মেয়েদের জিনিস…) সব একটা ব্যাচে রাখুন। ভাড়া আর অন্য খরচ <b>একবার</b> লিখলেই প্রতিটা জিনিসে তার দাম অনুযায়ী ভাগ হয়ে যাবে। পরে খরচ বদলালেও আবার ভাগ হবে।</p>
+      <div class="f">কোন বাজার থেকে<select id="tr-src">${places().map(x=>`<option>${esc(x)}</option>`).join("")}<option value="${OTHER}">অন্য জায়গা…</option></select><input id="tr-src2" class="inp" placeholder="জায়গার নাম" hidden></div>
+      <button type="button" class="btn primary" id="tr-new">নতুন ব্যাচ শুরু করুন</button>
+      ${recent.length?`<h3 style="margin:10px 0 0;font-size:18px">আগের ব্যাচ</h3>`+recent.map(t=>{const its=tripItems(t);return `<div class="mini"><span>${esc(t.src||"")} · ${bnDate(dayKey(new Date(t.t)))}<br><small style="color:var(--muted)">${bn(its.length)}টা জিনিস · মাল ৳${bn(its.reduce((a,i)=>a+(i.total||0),0))} · খরচ ৳${bn(tripCost(t))}</small></span><button type="button" class="undo" style="color:var(--accent)" data-tropen="${t.id}">খুলুন</button></div>`}).join(""):""}`;
+    $("tr-src").onchange=()=>{const o=$("tr-src").value===OTHER;$("tr-src2").hidden=!o;if(o)$("tr-src2").focus()};
+    $("tr-new").onclick=()=>{const src=$("tr-src").value===OTHER?$("tr-src2").value.trim():$("tr-src").value;if(!src){toast("বাজারের নাম দিন");return}
+      const t={id:newId(),t:Date.now(),src,fare:0,extra:[],open:true};S.trips.push(t);S.prefs.openTrip=t.id;save();renderBatch()};
+    box.querySelectorAll("[data-tropen]").forEach(b=>b.onclick=()=>{const t=S.trips.find(x=>x.id===b.dataset.tropen);t.open=true;S.prefs.openTrip=t.id;save();renderBatch();window.scrollTo(0,0)});
+    return;
+  }
+  costs.t=(tr.extra||[]).map(c=>({l:c.l,a:c.a}));
+  box.innerHTML=`<div class="okbox"><b>${esc(tr.src)}</b> · ${bnDate(dayKey(new Date(tr.t)))} এর ব্যাচ চলছে</div>
+    <h3 style="margin:4px 0 0;font-size:18px">১. পুরো ব্যাচের খরচ (একবারই লিখুন)</h3>
+    <label class="f">গাড়ি ভাড়া/পার্সেল (৳)<input id="tr-fare" inputmode="decimal" value="${tr.fare?bnRaw(tr.fare):""}" placeholder="যেমন ৩০০"></label>
+    <div class="costs" id="t-costs"></div>
+    <h3 style="margin:8px 0 0;font-size:18px">২. একটা একটা জিনিস যোগ করুন</h3>
+    <div class="photo-pick"><button type="button" class="ph" id="t-ph" data-photo="t">📷</button><p class="help">ছবি দিলে চিনতে সুবিধা, না দিলেও চলবে।</p></div>
+    <label class="f">নাম<input id="t-name" placeholder="যেমন: খেলনা গাড়ি"></label>
+    <div class="two"><label class="f">ধরন<select id="t-cat">${CATS.map(c=>`<option${c===(S.prefs.lastTripCat||"")?" selected":""}>${c}</option>`).join("")}</select></label><label class="f">কয়টা<input id="t-qty" inputmode="numeric" value="১২"></label></div>
+    <div class="two"><label class="f">মোট কেনা দাম (৳)<input id="t-total" inputmode="decimal" placeholder="৬০০"></label><label class="f">বিক্রির দাম (৳)<input id="t-sell" inputmode="decimal" placeholder="খালি রাখলে ৩০% লাভ"></label></div>
+    <div class="err" id="t-err"></div>
+    <button type="button" class="btn primary" id="t-add">ব্যাচে যোগ করুন</button>
+    <h3 style="margin:8px 0 0;font-size:18px">এই ব্যাচে যা আছে</h3>
+    <div id="t-list"></div>
+    <div class="btns" style="margin-top:6px"><button type="button" class="btn primary" id="tr-close">ব্যাচ শেষ করুন</button></div>`;
+  drawCosts("t");drawTripList();
+  $("tr-fare").oninput=()=>{tr.fare=num($("tr-fare").value);tripChanged()};
+  $("t-add").onclick=()=>{
+    $("t-err").textContent="";const name=$("t-name").value.trim(),qty=num($("t-qty").value),total=num($("t-total").value);let sell=num($("t-sell").value);
+    if(!name||!(qty>0)||!(total>0)){$("t-err").textContent="নাম, কয়টা আর মোট দাম লিখুন।";return}
+    const it={id:newId(),created:Date.now(),trip:tr.id,name,cat:$("t-cat").value,src:tr.src,qty,sold:0,rev:0,total,fare:0,extra:[],sell:sell||0,updated:Date.now()};
+    if(slots.t)it.thumb=slots.t;
+    S.items.push(it);redistribute(tr);
+    if(!(sell>0)){it.sell=roundUp5((unit(it)||0)*1.3);it.autoSell=true}
+    S.prefs.lastTripCat=it.cat;save();render();
+    ["t-name","t-total","t-sell"].forEach(id=>$(id).value="");setPhoto("t",null);drawTripList();$("t-name").focus();toast(`${name} ব্যাচে যোগ হলো`);
+  };
+  $("tr-close").onclick=()=>{tr.open=false;S.prefs.openTrip="";save();renderBatch();toast("ব্যাচ শেষ হলো। পরে খুলে খরচ বদলাতে পারবেন।",null,null,3500)};
+}
+function tripChanged(){const tr=openTrip();if(!tr)return;tr.extra=cleanCosts("t");redistribute(tr);save();render();drawTripList()}
+function drawTripList(){
+  const tr=openTrip();if(!tr||!$("t-list"))return;const its=tripItems(tr),mal=its.reduce((a,i)=>a+(i.total||0),0),cost=tripCost(tr);
+  $("t-list").innerHTML=its.length?`<div class="tablewrap"><table><thead><tr><th>নাম</th><th>কয়টা</th><th>মাল</th><th>ভাগের খরচ</th><th>খরচ/পিস</th><th>বিক্রি</th></tr></thead><tbody>`+
+    its.map(i=>{const u=unit(i)||0,share=(i.fare||0)+extraSum(i);return `<tr data-trit="${i.id}"><td><u>${esc(i.name)}</u><br><small style="color:var(--muted)">${esc(i.cat||"")}</small></td><td>${bn(i.qty)}</td><td>৳${bn(i.total)}</td><td>৳${bn(share)}</td><td>৳${bn(u)}</td><td style="${i.sell<u?"color:var(--danger)":""}"><b>৳${bn(i.sell)}</b>${i.autoSell?"*":""}</td></tr>`}).join("")+
+    `</tbody></table></div><div class="calc">মাল ৳${bn(mal)} + খরচ ৳${bn(cost)} = <b>মোট ৳${bn(mal+cost)}</b><br><small>${its.some(i=>i.autoSell)?"* বিক্রির দাম ৩০% লাভ ধরে বসানো। ":""}নামে চাপ দিলে জিনিসটা বদলানো যাবে।</small></div>`
+    :`<p class="help">এখনো কিছু যোগ করা হয়নি।</p>`;
+  $("t-list").querySelectorAll("[data-trit]").forEach(r=>r.onclick=()=>{const it=S.items.find(x=>x.id===r.dataset.trit);if(it)openEdit(it)});
+}
+
 /* ---------- add one ---------- */
-$("m-bulk").onclick=()=>mode(true);$("m-one").onclick=()=>mode(false);
-function mode(b){$("bulk").hidden=!b;$("one").hidden=b;$("m-bulk").setAttribute("aria-pressed",b);$("m-one").setAttribute("aria-pressed",!b)}
+$("m-batch").onclick=()=>mode("batch");$("m-bulk").onclick=()=>mode("bulk");$("m-one").onclick=()=>mode("one");
+function mode(m){["batch","bulk","one"].forEach(x=>{$(x).hidden=x!==m;$("m-"+x).setAttribute("aria-pressed",x===m)});if(m==="batch")renderBatch()}
 function calcHtml(qty,total,fare,sell,target){
   if(!(qty>0&&total>0))return "কয়টা আর মোট দাম লিখলে প্রতি পিসের খরচ দেখাবে।";
   const u=(total+fare)/qty,s30=roundUp5(u*1.3);
@@ -516,7 +584,8 @@ function parseBulk(){
 $("b-save").onclick=()=>{
   const ok=parsed.filter(p=>!p.bad);if(!ok.length)return;
   const c=$("b-cat").value,src=getSrc("b"),t=Date.now();
-  ok.forEach((p,i)=>S.items.push({id:newId()+i,created:t,name:p.name,cat:c,src,qty:p.qty,sold:0,rev:0,total:p.total,fare:p.fare,extra:p.extra,sell:p.sell,updated:t+i}));
+  const tr={id:newId(),t,src,fare:num($("b-fare").value),extra:cleanCosts("b"),open:false};S.trips.push(tr);
+  ok.forEach((p,i)=>S.items.push({id:newId()+i,created:t,trip:tr.id,name:p.name,cat:c,src,qty:p.qty,sold:0,rev:0,total:p.total,fare:p.fare,extra:p.extra,sell:p.sell,updated:t+i}));
   save();render();fillPlaces();toast(`${bn(ok.length)}টা জিনিস সেভ হলো`);
   $("b-text").value="";$("b-fare").value="";costs.b=[];drawCosts("b");parseBulk();
 };
@@ -531,6 +600,8 @@ function openEdit(it){
   $("e-qty").value=bnRaw(it.qty||0);$("e-sold").value=bnRaw(it.sold||0);$("e-total").value=bnRaw(it.total||0);$("e-fare").value=bnRaw(it.fare||0);$("e-sell").value=bnRaw(it.sell||0);
   costs.e=(it.extra||[]).map(c=>({l:c.l,a:c.a}));drawCosts("e");
   varsEd.e=(it.vars||[]).map(v=>({n:v.n,qty:v.qty,sold:v.sold}));drawVars("e");
+  const tr=it.trip&&S.trips.find(t=>t.id===it.trip);$("e-farebox").hidden=!!tr;$("e-costs").hidden=!!tr;$("e-tripnote").hidden=!tr;
+  if(tr)$("e-tripnote").innerHTML=`এটা <b>${esc(tr.src)}</b> (${bnDate(dayKey(new Date(tr.t)))}) ব্যাচের জিনিস। ভাড়া আর অন্য খরচ থেকে এর ভাগে পড়েছে ৳${bn((it.fare||0)+extraSum(it))}। ব্যাচের খরচ বদলাতে <b>মাল যোগ → ব্যাচে কেনাকাটা</b>-য় ব্যাচটা খুলুন।`;
   $("e-addq").value="";$("e-addt").value="";delArm=false;$("e-del").textContent="মুছুন";
   $("editBg").hidden=false;eCalc();
 }
@@ -538,8 +609,9 @@ function closeEdit(){$("editBg").hidden=true;editing=null}
 $("e-cancel").onclick=closeEdit;$("editBg").onclick=e=>{if(e.target===$("editBg"))closeEdit()};
 $("e-del").onclick=()=>{
   if(!delArm){delArm=true;$("e-del").textContent="নিশ্চিত? আবার চাপুন";return}
-  const it=editing;closeEdit();S.items=S.items.filter(i=>i!==it);save();render();
-  toast(`${it.name} মুছে ফেলা হলো`,"ফেরত",()=>{S.items.push(it);save();render()});
+  const it=editing;closeEdit();S.items=S.items.filter(i=>i!==it);
+  const tr=it.trip&&S.trips.find(t=>t.id===it.trip);if(tr)redistribute(tr);save();render();drawTripList();
+  toast(`${it.name} মুছে ফেলা হলো`,"ফেরত",()=>{S.items.push(it);if(tr)redistribute(tr);save();render();drawTripList()});
 };
 $("edit").onsubmit=e=>{
   e.preventDefault();const it=editing;if(!it)return;
@@ -549,11 +621,14 @@ $("edit").onsubmit=e=>{
   const newSold=num($("e-sold").value);
   if(newSold!==(it.sold||0)){it.rev=(it.rev||0)+(newSold-(it.sold||0))*sellP;if(it.rev<0)it.rev=0}
   Object.assign(it,{name,cat:$("e-cat").value,src:getSrc("e"),qty:num($("e-qty").value)+num($("e-addq").value),sold:newSold,
-    total:num($("e-total").value)+num($("e-addt").value),fare:num($("e-fare").value),extra:cleanCosts("e"),sell:sellP,updated:Date.now()});
+    total:num($("e-total").value)+num($("e-addt").value),sell:sellP,updated:Date.now()});
+  const tr=it.trip&&S.trips.find(t=>t.id===it.trip);
+  if(tr)redistribute(tr);else{it.fare=num($("e-fare").value);it.extra=cleanCosts("e")}
+  if(it.autoSell&&sellP!==it.sell)delete it.autoSell;
   const vs=cleanVars("e");if(vs.length){it.vars=vs;it.qty=vs.reduce((a,v)=>a+v.qty,0);it.sold=vs.reduce((a,v)=>a+v.sold,0)}else delete it.vars;
   if(it.sold>it.qty)it.sold=it.qty;
   if(slots.e)it.thumb=slots.e;
-  closeEdit();save();render();toast("সেভ হলো");
+  closeEdit();save();render();if(view==="add")drawTripList();toast("সেভ হলো");
 };
 
 /* ---------- summary ---------- */
