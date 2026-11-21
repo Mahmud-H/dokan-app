@@ -66,8 +66,14 @@ input,select,textarea,button{font:inherit;color:inherit}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .panel h2{margin:0;font-size:21px}
 .seg3{grid-template-columns:1fr 1fr 1fr!important}
-#t-list td:first-child{min-width:7.5em}
-#t-list tr[data-trit]{cursor:pointer}
+#t-list{display:flex;flex-direction:column;gap:8px}
+.trow{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px;text-align:left;font:inherit;color:inherit;width:100%}
+.trow .ph{width:56px;height:56px;font-size:22px}
+.tmid{display:flex;flex-direction:column;min-width:0}
+.tmid b{font-size:19px;overflow-wrap:anywhere}
+.tmid small,.tright small{font-size:14px;color:var(--muted)}
+.tright{display:flex;flex-direction:column;align-items:flex-end;white-space:nowrap}
+.tright b{font-size:22px;color:var(--price);line-height:1.2}
 .seg3 button{font-size:15px;padding:8px 4px}
 .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--line);border-radius:10px;padding:3px;gap:3px}
 .seg button{border:0;border-radius:8px;padding:8px;background:none;font-weight:600}
@@ -307,7 +313,7 @@ input:disabled{opacity:.6}
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="1.4";
+const APPV="1.4.1";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED={"v": 3, "items": [], "days": {}};
 const NATIVE=typeof window.Android!=="undefined";
@@ -527,9 +533,11 @@ function renderBatch(){
 function tripChanged(){const tr=openTrip();if(!tr)return;tr.extra=cleanCosts("t");redistribute(tr);save();render();drawTripList()}
 function drawTripList(){
   const tr=openTrip();if(!tr||!$("t-list"))return;const its=tripItems(tr),mal=its.reduce((a,i)=>a+(i.total||0),0),cost=tripCost(tr);
-  $("t-list").innerHTML=its.length?`<div class="tablewrap"><table><thead><tr><th>নাম</th><th>কয়টা</th><th>মাল</th><th>ভাগের খরচ</th><th>খরচ/পিস</th><th>বিক্রি</th></tr></thead><tbody>`+
-    its.map(i=>{const u=unit(i)||0,share=(i.fare||0)+extraSum(i);return `<tr data-trit="${i.id}"><td><u>${esc(i.name)}</u><br><small style="color:var(--muted)">${esc(i.cat||"")}</small></td><td>${bn(i.qty)}</td><td>৳${bn(i.total)}</td><td>৳${bn(share)}</td><td>৳${bn(u)}</td><td style="${i.sell<u?"color:var(--danger)":""}"><b>৳${bn(i.sell)}</b>${i.autoSell?"*":""}</td></tr>`}).join("")+
-    `</tbody></table></div><div class="calc">মাল ৳${bn(mal)} + খরচ ৳${bn(cost)} = <b>মোট ৳${bn(mal+cost)}</b><br><small>${its.some(i=>i.autoSell)?"* বিক্রির দাম ৩০% লাভ ধরে বসানো। ":""}নামে চাপ দিলে জিনিসটা বদলানো যাবে।</small></div>`
+  $("t-list").innerHTML=its.length?its.map(i=>{const u=unit(i)||0,share=(i.fare||0)+extraSum(i),bad=i.sell<u;
+      return `<button type="button" class="trow" data-trit="${i.id}"><span class="ph">${phHtml(i)}</span>
+        <span class="tmid"><b>${esc(i.name)}</b><small>${esc(i.cat||"")} · ${bn(i.qty)}টা · মাল ৳${bn(i.total)} + খরচ ৳${bn(share)}</small></span>
+        <span class="tright"><small>খরচ/পিস ৳${bn(u)}</small><b style="${bad?"color:var(--danger)":""}">৳${bn(i.sell)}${i.autoSell?"*":""}</b><small>${bad?"লোকসান!":"লাভ ৳"+bn(i.sell-u)}</small></span></button>`}).join("")+
+    `<div class="calc">মাল ৳${bn(mal)} + খরচ ৳${bn(cost)} = <b>মোট ৳${bn(mal+cost)}</b><br><small>${its.some(i=>i.autoSell)?"* বিক্রির দাম ৩০% লাভ ধরে বসানো। ":""}কোনো জিনিসে চাপ দিলে বদলানো যাবে।</small></div>`
     :`<p class="help">এখনো কিছু যোগ করা হয়নি।</p>`;
   $("t-list").querySelectorAll("[data-trit]").forEach(r=>r.onclick=()=>{const it=S.items.find(x=>x.id===r.dataset.trit);if(it)openEdit(it)});
 }
