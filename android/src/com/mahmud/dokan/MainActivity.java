@@ -9,7 +9,10 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.hardware.biometrics.BiometricManager;
+import android.hardware.biometrics.BiometricPrompt;
 import android.media.ExifInterface;
+import android.os.CancellationSignal;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -170,7 +173,32 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void ready() { ready = true; }
         @JavascriptInterface public void reload() { h.post(MainActivity.this::loadApp); }
-        @JavascriptInterface public String version() { return "2"; }
+        @JavascriptInterface public String version() { return "3"; }
+        @JavascriptInterface public boolean canBio() {
+            try {
+                if (Build.VERSION.SDK_INT >= 29) {
+                    BiometricManager bm = getSystemService(BiometricManager.class);
+                    return bm != null && bm.canAuthenticate() == BiometricManager.BIOMETRIC_SUCCESS;
+                }
+                return Build.VERSION.SDK_INT >= 28 && getPackageManager().hasSystemFeature(PackageManager.FEATURE_FINGERPRINT);
+            } catch (Exception e) { return false; }
+        }
+        @JavascriptInterface public void bio() {
+            if (Build.VERSION.SDK_INT < 28) { js("window.onBio&&onBio(false)"); return; }
+            h.post(() -> {
+                try {
+                    BiometricPrompt p = new BiometricPrompt.Builder(MainActivity.this)
+                        .setTitle("দামের খাতা খুলুন")
+                        .setSubtitle("আঙুলের ছাপ দিন")
+                        .setNegativeButton("PIN দিন", getMainExecutor(), (d, w) -> js("window.onBio&&onBio(false)"))
+                        .build();
+                    p.authenticate(new CancellationSignal(), getMainExecutor(), new BiometricPrompt.AuthenticationCallback() {
+                        @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult r) { js("window.onBio&&onBio(true)"); }
+                        @Override public void onAuthenticationError(int code, CharSequence msg) { js("window.onBio&&onBio(false)"); }
+                    });
+                } catch (Exception e) { js("window.onBio&&onBio(false)"); }
+            });
+        }
         @JavascriptInterface public void checkUpdate() {
             new Thread(() -> { String r = MainActivity.this.checkUpdate(true); js("window.onUpdateCheck&&onUpdateCheck('" + r + "')"); }).start();
         }

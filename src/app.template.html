@@ -242,6 +242,7 @@ input:disabled{opacity:.6}
     <h2>🔒 PIN দিন</h2>
     <input id="pin-in" class="inp" type="password" inputmode="numeric" maxlength="4" autocomplete="off" style="font-size:28px;text-align:center;letter-spacing:10px">
     <div class="err" id="pin-err"></div>
+    <button type="button" class="btn" id="pin-bio" hidden>👆 আঙুলের ছাপ দিয়ে খুলুন</button>
     <div class="btns"><button type="button" class="btn" id="pin-cancel">বাতিল</button><button type="submit" class="btn primary">খুলুন</button></div>
   </form>
 </div>
@@ -313,7 +314,7 @@ input:disabled{opacity:.6}
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="1.4.1";
+const APPV="1.5";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED=__SEED__;
 const NATIVE=typeof window.Android!=="undefined";
@@ -986,8 +987,11 @@ function viewSettings(box){
   box.innerHTML=`${moreHead("Backup · PIN · Update")}
   <div class="sec"><h3>হিসাব লক (PIN)</h3>
     <p class="help">PIN দিলে <b>হিসাব</b>, <b>আরও</b> আর জিনিসের কেনা দাম দেখতে PIN লাগবে। দাম দেখা আর বিক্রি করা আগের মতোই খোলা থাকবে।</p>
-    ${P.pin?`<div class="okbox">PIN চালু আছে।</div><div class="btns"><button type="button" class="btn" id="pn-change">PIN বদলান</button><button type="button" class="btn del" id="pn-off">PIN বন্ধ করুন</button></div>`
+    ${P.pin?`<div class="okbox">PIN চালু আছে।${bioAvail()?(P.bio!==false?" আঙুলের ছাপ দিয়েও খোলা যায়।":" আঙুলের ছাপ বন্ধ।"):""}</div>
+      ${bioAvail()?`<button type="button" class="btn" id="pn-bio">${P.bio!==false?"আঙুলের ছাপ বন্ধ করুন":"👆 আঙুলের ছাপ দিয়ে খোলা চালু করুন"}</button>`:(NATIVE&&typeof Android.bio!=="function"?`<p class="help">আঙুলের ছাপ দিয়ে খুলতে নতুন APK (version ৩) install করুন।</p>`:"")}
+      <div class="btns"><button type="button" class="btn" id="pn-change">PIN বদলান</button><button type="button" class="btn del" id="pn-off">PIN বন্ধ করুন</button></div>`
     :`<div class="two"><input class="inp" id="pn-new" type="password" inputmode="numeric" maxlength="4" placeholder="৪ সংখ্যার PIN"><button type="button" class="btn primary" id="pn-set">PIN চালু করুন</button></div>`}
+    ${!P.pin&&bioAvail()?`<p class="help">আঙুলের ছাপ দিয়ে খুলতে আগে একটা PIN চালু করুন। আঙুলের ছাপ কাজ না করলে তখন PIN দিয়ে খুলবেন।</p>`:""}
     <p class="help">PIN ভুলে গেলে: app-এর data মুছে Backup থেকে ফেরত আনুন, তখন PIN উঠে যাবে।</p></div>
   <div class="sec"><h3>Google Drive-এ নিজে থেকে Backup</h3>
     ${P.driveUrl?`<div class="okbox">চালু আছে। Internet পেলেই হিসাব Drive-এর <b>Dokan Backup</b> ফোল্ডারে চলে যায়।<br>শেষ Drive backup: <b>${P.lastDrive?bnTime(P.lastDrive):"এখনো হয়নি"}</b></div>
@@ -1006,14 +1010,21 @@ function viewSettings(box){
   if(P.driveUrl){$("dr-now").onclick=()=>driveBackup(true);$("dr-off").onclick=()=>{S.prefs.driveUrl="";saveNow();renderMore()}}
   else $("dr-save").onclick=()=>{const u=$("dr-url").value.trim();if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/.test(u)){toast("লিংকটা ঠিক না। script.google.com দিয়ে শুরু, /exec দিয়ে শেষ হওয়া লিংক দিন।",null,null,5000);return}
     S.prefs.driveUrl=u.split("?")[0];if(!S.prefs.driveKey)S.prefs.driveKey=newId()+newId();saveNow();driveBackup(true)};
+  if($("pn-bio"))$("pn-bio").onclick=()=>{S.prefs.bio=S.prefs.bio===false;saveNow();renderMore();toast(S.prefs.bio?"আঙুলের ছাপ চালু হলো":"আঙুলের ছাপ বন্ধ হলো")};
   if(P.pin){$("pn-off").onclick=()=>armed($("pn-off"),()=>{S.prefs.pin="";saveNow();renderMore();toast("PIN বন্ধ হলো")});$("pn-change").onclick=()=>{S.prefs.pin="";saveNow();renderMore()}}
   else $("pn-set").onclick=()=>{const v=toEn($("pn-new").value.trim());if(!/^\d{4}$/.test(v)){toast("৪টা সংখ্যা দিন");return}S.prefs.pin=v;unlockedUntil=Date.now()+10*60e3;saveNow();renderMore();toast("PIN চালু হলো। মনে রাখবেন!",null,null,4000)};
 }
 
 /* ---- PIN lock ---- */
 let unlockedUntil=0,pinNext=null;
-function withPin(fn){if(!S.prefs.pin||Date.now()<unlockedUntil){fn();return}pinNext=fn;$("pin-in").value="";$("pin-err").textContent="";$("pinBg").hidden=false;setTimeout(()=>$("pin-in").focus(),50)}
-$("pinForm").onsubmit=e=>{e.preventDefault();if(toEn($("pin-in").value.trim())===S.prefs.pin){unlockedUntil=Date.now()+10*60e3;$("pinBg").hidden=true;const f=pinNext;pinNext=null;f&&f()}else{$("pin-err").textContent="PIN ভুল হয়েছে";$("pin-in").value=""}};
+function bioAvail(){if(!NATIVE||typeof Android.bio!=="function")return false;try{return !!Android.canBio()}catch(e){return false}}
+const bioOn=()=>S.prefs.bio!==false&&bioAvail();
+function withPin(fn){if(!S.prefs.pin||Date.now()<unlockedUntil){fn();return}pinNext=fn;$("pin-in").value="";$("pin-err").textContent="";$("pinBg").hidden=false;
+  const b=bioOn();$("pin-bio").hidden=!b;if(b)Android.bio();else setTimeout(()=>$("pin-in").focus(),50)}
+function unlockNow(){unlockedUntil=Date.now()+10*60e3;$("pinBg").hidden=true;const f=pinNext;pinNext=null;f&&f()}
+window.onBio=ok=>{if($("pinBg").hidden)return;if(ok)unlockNow();else{$("pin-err").textContent="";setTimeout(()=>$("pin-in").focus(),50)}};
+$("pin-bio").onclick=()=>Android.bio();
+$("pinForm").onsubmit=e=>{e.preventDefault();if(toEn($("pin-in").value.trim())===S.prefs.pin){unlockNow()}else{$("pin-err").textContent="PIN ভুল হয়েছে";$("pin-in").value=""}};
 $("pin-cancel").onclick=()=>{$("pinBg").hidden=true;pinNext=null};
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&S.prefs.pin)unlockedUntil=Math.min(unlockedUntil,Date.now()+60e3)});
 
