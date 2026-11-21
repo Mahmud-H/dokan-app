@@ -102,6 +102,20 @@ tr.bad td{color:var(--danger)}
 .total{font-size:20px}
 .total b{color:var(--price);font-size:26px}
 .hint{font-size:15px;color:var(--warn)}
+.costs{display:flex;flex-direction:column;gap:6px}
+.costrow{display:grid;grid-template-columns:1fr 110px 40px;gap:6px}
+.costrow select,.costrow input{font-size:17px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);min-width:0;width:100%;box-sizing:border-box}
+.costrow .x{border:0;background:none;color:var(--danger);font-size:20px}
+.addcost{align-self:flex-start;font-size:16px}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.chart svg{display:block;width:100%;height:auto}
+.legend{display:flex;gap:14px;font-size:15px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.hb{display:grid;grid-template-columns:minmax(0,7.5em) 1fr auto;gap:8px;align-items:center;font-size:16px;padding:4px 0}
+.hb span{overflow-wrap:anywhere}
+.hb .bar{height:16px;border-radius:5px;background:var(--accent);min-width:2px}
+.hb b{white-space:nowrap;font-size:15px}
+.undo{border:1.5px solid var(--line);background:var(--bg);border-radius:8px;padding:3px 10px;font-size:15px;color:var(--danger);white-space:nowrap}
 /* summary */
 .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
@@ -146,6 +160,7 @@ nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft
             <label class="f">ধরন (সবগুলোর)<select id="b-cat"></select></label>
             <label class="f">মোট গাড়ি ভাড়া/পার্সেল (৳)<input id="b-fare" inputmode="decimal" placeholder="যেমন ৩০০"></label>
           </div>
+          <div class="costs" id="b-costs"></div>
           <div class="f">কোথা থেকে কেনা<select id="b-srcsel"></select><input id="b-src" placeholder="জায়গার নাম লিখুন" hidden></div>
           <div id="b-prev"></div>
           <button type="button" class="btn primary" id="b-save" disabled>সব সেভ করুন</button>
@@ -168,6 +183,7 @@ nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft
             <label class="f">ভাড়া/পার্সেল (৳)<input id="o-fare" inputmode="decimal" placeholder="০"></label>
             <label class="f">বিক্রির দাম (৳)<input id="o-sell" inputmode="decimal" placeholder="১৪০"></label>
           </div>
+          <div class="costs" id="o-costs"></div>
           <div class="calc" id="o-calc"></div>
           <div class="err" id="o-err"></div>
           <button type="submit" class="btn primary">সেভ করে আরেকটা</button>
@@ -223,6 +239,7 @@ nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft
       <label class="f">মোট কেনা দাম (৳)<input id="e-total" inputmode="decimal"></label>
       <label class="f">ভাড়া/পার্সেল (৳)<input id="e-fare" inputmode="decimal"></label>
     </div>
+    <div class="costs" id="e-costs"></div>
     <label class="f">বিক্রির দাম (৳)<input id="e-sell" inputmode="decimal"></label>
     <div class="calc" id="e-calc"></div>
     <div class="calc" style="background:var(--bg)">
@@ -246,7 +263,7 @@ nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="1.1";
+const APPV="1.2";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED=__SEED__;
 const NATIVE=typeof window.Android!=="undefined";
@@ -284,7 +301,8 @@ function saveNow(){const s=JSON.stringify(S);try{NATIVE?Android.save(s):localSto
 let saveT;function save(){S.prefs.dirty=true;clearTimeout(saveT);saveT=setTimeout(saveNow,150)}
 document.addEventListener("visibilitychange",()=>{if(document.hidden){clearTimeout(saveT);saveNow();autoDrive()}});
 const today=()=>S.days[dayKey()]||(S.days[dayKey()]={n:0,rev:0,profit:0});
-const unit=it=>it.qty>0&&it.total>0?(it.total+(it.fare||0))/it.qty:null;
+const extraSum=it=>(it.extra||[]).reduce((a,c)=>a+(+c.a||0),0);
+const unit=it=>it.qty>0&&it.total>0?(it.total+(it.fare||0)+extraSum(it))/it.qty:null;
 const left=it=>Math.max(0,(it.qty||0)-(it.sold||0));
 
 /* ---------- ui basics ---------- */
@@ -372,17 +390,34 @@ $("fileImg").onchange=async()=>{const f=$("fileImg").files[0];$("fileImg").value
     c.width=Math.round(img.naturalWidth*s);c.height=Math.round(img.naturalHeight*s);c.getContext("2d").drawImage(img,0,0,c.width,c.height);
     window.onPhoto(photoSlot,c.toDataURL("image/jpeg",.7))}catch(e){window.onPhoto(photoSlot,null)}};
 
+/* ---------- extra costs (labour, courier, market charge, ghat…) ---------- */
+const COSTL=["লেবার","কুরিয়ার","মার্কেট চার্জ","নৌকা ঘাট","টোল","রিকশা/ভ্যান","খাওয়া-দাওয়া","অন্য খরচ"];
+const costs={o:[],e:[],b:[]};
+const costSum=p=>costs[p].reduce((a,c)=>a+(+c.a||0),0);
+function drawCosts(p){
+  $(p+"-costs").innerHTML=costs[p].map((c,i)=>`<div class="costrow"><select data-cp="${p}" data-ci="${i}" data-k="l" aria-label="খরচের ধরন">${COSTL.map(x=>`<option${x===c.l?" selected":""}>${x}</option>`).join("")}${COSTL.includes(c.l)?"":`<option selected>${esc(c.l)}</option>`}</select><input data-cp="${p}" data-ci="${i}" data-k="a" inputmode="decimal" placeholder="৳" aria-label="টাকা" value="${c.a?bnRaw(c.a):""}"><button type="button" class="x" data-cdel="${i}" data-cp="${p}" aria-label="মুছুন">✕</button></div>`).join("")+
+    `<button type="button" class="link addcost" data-cadd="${p}">+ অন্য খরচ যোগ করুন (লেবার, কুরিয়ার, ঘাট…)</button>`;
+}
+const recalc=p=>p==="o"?oCalc():p==="e"?eCalc():parseBulk();
+document.addEventListener("input",e=>{const t=e.target;if(!t.dataset||!t.dataset.cp||t.dataset.ci==null)return;const c=costs[t.dataset.cp][+t.dataset.ci];if(!c)return;
+  if(t.dataset.k==="a")c.a=num(t.value);else c.l=t.value;recalc(t.dataset.cp)});
+document.addEventListener("change",e=>{const t=e.target;if(t.dataset&&t.dataset.cp&&t.dataset.k==="l"){const c=costs[t.dataset.cp][+t.dataset.ci];if(c)c.l=t.value}});
+document.addEventListener("click",e=>{const a=e.target.closest("[data-cadd]");if(a){const p=a.dataset.cadd;costs[p].push({l:COSTL[0],a:0});drawCosts(p);const ins=$(p+"-costs").querySelectorAll("input");ins[ins.length-1].focus();return}
+  const d=e.target.closest("[data-cdel]");if(d){const p=d.dataset.cp;costs[p].splice(+d.dataset.cdel,1);drawCosts(p);recalc(p)}});
+const cleanCosts=p=>costs[p].filter(c=>c.a>0).map(c=>({l:c.l,a:c.a}));
+["o","e","b"].forEach(drawCosts);
+
 /* ---------- add one ---------- */
 $("m-bulk").onclick=()=>mode(true);$("m-one").onclick=()=>mode(false);
 function mode(b){$("bulk").hidden=!b;$("one").hidden=b;$("m-bulk").setAttribute("aria-pressed",b);$("m-one").setAttribute("aria-pressed",!b)}
 function calcHtml(qty,total,fare,sell,target){
   if(!(qty>0&&total>0))return "কয়টা আর মোট দাম লিখলে প্রতি পিসের খরচ দেখাবে।";
   const u=(total+fare)/qty,s30=roundUp5(u*1.3);
-  return `প্রতি পিস খরচ (ভাড়াসহ): <b>৳${bn(u)}</b><br>`+(sell>0?`প্রতি পিস লাভ: <b>৳${bn(sell-u)}</b> · সব বিক্রি হলে <b>৳${bn((sell-u)*qty)}</b><br>`:"")+
+  return `প্রতি পিস খরচ (ভাড়া ও অন্য খরচসহ): <b>৳${bn(u)}</b><br>`+(sell>0?`প্রতি পিস লাভ: <b>৳${bn(sell-u)}</b> · সব বিক্রি হলে <b>৳${bn((sell-u)*qty)}</b><br>`:"")+
     `৩০% লাভে দাম ৳${bn(s30)} <button type="button" class="link" data-set="${target}" data-v="${s30}">এটা বসান</button>`;
 }
-function oCalc(){$("o-calc").innerHTML=calcHtml(num($("o-qty").value),num($("o-total").value),num($("o-fare").value),num($("o-sell").value),"o-sell")}
-function eCalc(){$("e-calc").innerHTML=calcHtml(num($("e-qty").value),num($("e-total").value),num($("e-fare").value),num($("e-sell").value),"e-sell")}
+function oCalc(){$("o-calc").innerHTML=calcHtml(num($("o-qty").value),num($("o-total").value),num($("o-fare").value)+costSum("o"),num($("o-sell").value),"o-sell")}
+function eCalc(){$("e-calc").innerHTML=calcHtml(num($("e-qty").value),num($("e-total").value),num($("e-fare").value)+costSum("e"),num($("e-sell").value),"e-sell")}
 ["o-qty","o-total","o-fare","o-sell"].forEach(id=>$(id).oninput=oCalc);
 ["e-qty","e-total","e-fare","e-sell"].forEach(id=>$(id).oninput=eCalc);
 document.addEventListener("click",e=>{const b=e.target.closest("[data-set]");if(!b)return;$(b.dataset.set).value=bnRaw(+b.dataset.v);b.dataset.set[0]==="o"?oCalc():eCalc()});
@@ -390,10 +425,11 @@ $("one").onsubmit=e=>{
   e.preventDefault();$("o-err").textContent="";
   const d={id:newId(),name:$("o-name").value.trim(),cat:$("o-cat").value,src:getSrc("o"),qty:num($("o-qty").value),sold:0,rev:0,total:num($("o-total").value),fare:num($("o-fare").value),sell:num($("o-sell").value),updated:Date.now()};
   if(!d.name){$("o-err").textContent="নাম লিখুন।";return}
-  if(!(d.sell>0)){const u=d.qty>0&&d.total>0?(d.total+d.fare)/d.qty:0;if(u)d.sell=roundUp5(u*1.3);else{$("o-err").textContent="বিক্রির দাম লিখুন।";return}}
+  d.extra=cleanCosts("o");
+  if(!(d.sell>0)){const u=d.qty>0&&d.total>0?(d.total+d.fare+extraSum(d))/d.qty:0;if(u)d.sell=roundUp5(u*1.3);else{$("o-err").textContent="বিক্রির দাম লিখুন।";return}}
   if(slots.o)d.thumb=slots.o;
   S.items.push(d);save();render();fillPlaces();toast(`${d.name} সেভ হলো`);
-  ["o-name","o-total","o-fare","o-sell"].forEach(id=>$(id).value="");setPhoto("o",null);oCalc();$("o-name").focus();
+  ["o-name","o-total","o-fare","o-sell"].forEach(id=>$(id).value="");setPhoto("o",null);costs.o=[];drawCosts("o");oCalc();$("o-name").focus();
 };
 oCalc();
 
@@ -409,11 +445,11 @@ function parseBulk(){
     return {name,qty:qty||0,total:total||0,sell:sell||0,bad:!name||!(qty>0)||!(total>0)};
   });
   const ok=parsed.filter(p=>!p.bad),sumT=ok.reduce((a,p)=>a+p.total,0);
-  ok.forEach(p=>{p.fare=sumT>0?Math.round(fare*p.total/sumT):0;p.u=(p.total+p.fare)/p.qty;if(!(p.sell>0)){p.sell=roundUp5(p.u*1.3);p.auto=true}});
+  ok.forEach(p=>{const sh=sumT>0?p.total/sumT:0;p.fare=Math.round(fare*sh);p.extra=cleanCosts("b").map(c=>({l:c.l,a:Math.round(c.a*sh)})).filter(c=>c.a>0);p.ex=extraSum(p);p.u=(p.total+p.fare+p.ex)/p.qty;if(!(p.sell>0)){p.sell=roundUp5(p.u*1.3);p.auto=true}});
   if(!parsed.length){$("b-prev").innerHTML="";$("b-save").disabled=true;$("b-save").textContent="সব সেভ করুন";return}
-  $("b-prev").innerHTML=`<div class="tablewrap"><table><thead><tr><th>নাম</th><th>কয়টা</th><th>মোট</th><th>ভাড়া</th><th>খরচ/পিস</th><th>বিক্রি</th></tr></thead><tbody>`+
+  $("b-prev").innerHTML=`<div class="tablewrap"><table><thead><tr><th>নাম</th><th>কয়টা</th><th>মোট</th><th>ভাড়া+খরচ</th><th>খরচ/পিস</th><th>বিক্রি</th></tr></thead><tbody>`+
     parsed.map(p=>p.bad?`<tr class="bad"><td colspan="6">${esc(p.name||"?")}: নাম, কয়টা আর মোট দাম দরকার</td></tr>`:
-      `<tr><td>${esc(p.name)}</td><td>${bn(p.qty)}</td><td>৳${bn(p.total)}</td><td>৳${bn(p.fare)}</td><td>৳${bn(p.u)}</td><td><b>৳${bn(p.sell)}</b>${p.auto?"*":""}</td></tr>`).join("")+
+      `<tr><td>${esc(p.name)}</td><td>${bn(p.qty)}</td><td>৳${bn(p.total)}</td><td>৳${bn(p.fare+p.ex)}</td><td>৳${bn(p.u)}</td><td><b>৳${bn(p.sell)}</b>${p.auto?"*":""}</td></tr>`).join("")+
     `</tbody></table></div>`+(ok.some(p=>p.auto)?`<p class="help">* বিক্রির দাম ৩০% লাভ ধরে বসানো, পরে বদলাতে পারবেন।</p>`:"");
   $("b-save").disabled=!ok.length;$("b-save").textContent=ok.length?`${bn(ok.length)}টা জিনিস সেভ করুন`:"সব সেভ করুন";
 }
@@ -421,9 +457,9 @@ function parseBulk(){
 $("b-save").onclick=()=>{
   const ok=parsed.filter(p=>!p.bad);if(!ok.length)return;
   const c=$("b-cat").value,src=getSrc("b"),t=Date.now();
-  ok.forEach((p,i)=>S.items.push({id:newId()+i,name:p.name,cat:c,src,qty:p.qty,sold:0,rev:0,total:p.total,fare:p.fare,sell:p.sell,updated:t+i}));
+  ok.forEach((p,i)=>S.items.push({id:newId()+i,name:p.name,cat:c,src,qty:p.qty,sold:0,rev:0,total:p.total,fare:p.fare,extra:p.extra,sell:p.sell,updated:t+i}));
   save();render();fillPlaces();toast(`${bn(ok.length)}টা জিনিস সেভ হলো`);
-  $("b-text").value="";$("b-fare").value="";parseBulk();
+  $("b-text").value="";$("b-fare").value="";costs.b=[];drawCosts("b");parseBulk();
 };
 
 /* ---------- edit ---------- */
@@ -433,6 +469,7 @@ function openEdit(it){
   $("e-ph").innerHTML=it.thumb?`<img src="${esc(it.thumb)}" alt="">`:"📷";
   $("e-name").value=it.name;$("e-cat").value=it.cat||"অন্যান্য";setSrc("e",it.src||"");
   $("e-qty").value=bnRaw(it.qty||0);$("e-sold").value=bnRaw(it.sold||0);$("e-total").value=bnRaw(it.total||0);$("e-fare").value=bnRaw(it.fare||0);$("e-sell").value=bnRaw(it.sell||0);
+  costs.e=(it.extra||[]).map(c=>({l:c.l,a:c.a}));drawCosts("e");
   $("e-addq").value="";$("e-addt").value="";delArm=false;$("e-del").textContent="মুছুন";
   $("editBg").hidden=false;eCalc();
 }
@@ -450,7 +487,7 @@ $("edit").onsubmit=e=>{
   const newSold=num($("e-sold").value);
   if(newSold!==(it.sold||0)){it.rev=(it.rev||0)+(newSold-(it.sold||0))*sellP;if(it.rev<0)it.rev=0}
   Object.assign(it,{name,cat:$("e-cat").value,src:getSrc("e"),qty:num($("e-qty").value)+num($("e-addq").value),sold:newSold,
-    total:num($("e-total").value)+num($("e-addt").value),fare:num($("e-fare").value),sell:sellP,updated:Date.now()});
+    total:num($("e-total").value)+num($("e-addt").value),fare:num($("e-fare").value),extra:cleanCosts("e"),sell:sellP,updated:Date.now()});
   if(it.sold>it.qty)it.sold=it.qty;
   if(slots.e)it.thumb=slots.e;
   closeEdit();save();render();toast("সেভ হলো");
@@ -458,11 +495,11 @@ $("edit").onsubmit=e=>{
 
 /* ---------- summary ---------- */
 function renderSum(){
-  const st=S.items.reduce((a,it)=>{const l=left(it),u=unit(it)??0,rev=it.rev??(it.sold||0)*it.sell;a.pcs+=l;a.costV+=l*u;a.sellV+=l*it.sell;a.fare+=it.fare||0;a.spent+=(it.total||0)+(it.fare||0);a.soldV+=rev;a.prof+=rev-(it.sold||0)*u;return a},{pcs:0,costV:0,sellV:0,fare:0,spent:0,soldV:0,prof:0});
+  const st=S.items.reduce((a,it)=>{const l=left(it),u=unit(it)??0,rev=it.rev??(it.sold||0)*it.sell;a.pcs+=l;a.costV+=l*u;a.sellV+=l*it.sell;a.fare+=(it.fare||0)+extraSum(it);a.spent+=(it.total||0)+(it.fare||0)+extraSum(it);a.soldV+=rev;a.prof+=rev-(it.sold||0)*u;return a},{pcs:0,costV:0,sellV:0,fare:0,spent:0,soldV:0,prof:0});
   const low=S.items.filter(it=>left(it)<=2).sort((a,b)=>left(a)-left(b));
   const top=S.items.filter(it=>it.sold>0).sort((a,b)=>(b.sold||0)-(a.sold||0)).slice(0,5);
   const recent=Object.keys(S.days).sort().reverse().slice(0,7);
-  const t=today(),todaySales=S.sales.filter(s=>dayKey(new Date(s.t))===dayKey()).reverse();
+  const t=today(),recentSales=S.sales.slice(-30).reverse();
   const since=S.lastBackup?Math.floor((Date.now()-S.lastBackup)/864e5):null;
   const P=S.prefs;
   $("sum").innerHTML=`
@@ -470,10 +507,12 @@ function renderSum(){
   <div class="stats">
     <div class="stat"><div class="k">আজ বিক্রি</div><div class="v g">৳${bn(t.rev)}</div><div class="k">${bn(t.n)}টা · লাভ ৳${bn(t.profit)}</div></div>
     <div class="stat"><div class="k">এ পর্যন্ত মোট লাভ</div><div class="v g">৳${bn(st.prof)}</div><div class="k">বিক্রি ৳${bn(st.soldV)}</div></div>
-    <div class="stat"><div class="k">মাল কিনতে মোট খরচ</div><div class="v">৳${bn(st.spent)}</div><div class="k">এর মধ্যে ভাড়া ৳${bn(st.fare)}</div></div>
+    <div class="stat"><div class="k">মাল কিনতে মোট খরচ</div><div class="v">৳${bn(st.spent)}</div><div class="k">এর মধ্যে ভাড়া ও অন্য খরচ ৳${bn(st.fare)}</div></div>
     <div class="stat"><div class="k">দোকানে মাল আছে</div><div class="v">${bn(st.pcs)}টা</div><div class="k">কেনা দামে ৳${bn(st.costV)} · বেচলে ৳${bn(st.sellV)}</div></div>
   </div>
-  <div class="sec"><h3>আজকের বিক্রি</h3>${todaySales.length?todaySales.map(s=>`<div class="mini"><span>${esc(s.name)} × ${bn(s.qty)}</span><b>৳${bn(s.qty*s.price)}</b></div>`).join(""):`<p class="help">আজ এখনো কিছু বিক্রি হয়নি।</p>`}</div>
+  ${chartsHtml()}
+  <div class="sec"><h3>সাম্প্রতিক বিক্রি</h3><p class="help">ভুল করে বিক্রি লিখলে <b>ফেরত</b> চাপুন (দুইবার), মাল আবার দোকানে যোগ হবে।</p>
+  ${recentSales.length?recentSales.map(s=>`<div class="mini"><span>${esc(s.name)} × ${bn(s.qty)}<br><small style="color:var(--muted)">${bnTime(s.t)}</small></span><span style="display:flex;gap:8px;align-items:center"><b>৳${bn(s.qty*s.price)}</b><button type="button" class="undo" data-undo="${s.id}">ফেরত</button></span></div>`).join(""):`<p class="help">এখনো কিছু বিক্রি হয়নি।</p>`}</div>
   <div class="sec"><h3>আবার আনতে হবে (২টা বা কম)</h3>${low.length?low.map(it=>`<div class="mini"><span>${esc(it.name)}</span><b class="stock ${left(it)?"low":"out"}">${left(it)?"আছে "+bn(left(it))+"টা":"শেষ"}</b></div>`).join(""):`<p class="help">সব জিনিসই যথেষ্ট আছে।</p>`}</div>
   <div class="sec"><h3>সবচেয়ে বেশি বিক্রি</h3>${top.length?top.map(it=>`<div class="mini"><span>${esc(it.name)}</span><b>${bn(it.sold)}টা</b></div>`).join(""):`<p class="help">এখনো কিছু বিক্রি হয়নি।</p>`}</div>
   <div class="sec"><h3>গত কয়েকদিনের বিক্রি</h3>${recent.length?recent.map(k=>`<div class="mini"><span>${bnDate(k)}</span><b>৳${bn(S.days[k].rev||0)} · লাভ ৳${bn(S.days[k].profit||0)}</b></div>`).join(""):`<p class="help">বিক্রি শুরু হলে দিনের হিসাব এখানে জমবে।</p>`}</div>
@@ -493,6 +532,9 @@ function renderSum(){
     <div class="btns"><button type="button" class="btn" id="up-check">নতুন version আছে কিনা দেখুন</button></div>
     <p class="help" style="text-align:center">এখনকার version ${bnVer(APPV)}</p>
   </div>`;
+  $("sum").querySelectorAll("[data-undo]").forEach(b=>b.onclick=()=>{
+    if(b.dataset.arm!=="1"){b.dataset.arm="1";b.textContent="নিশ্চিত?";setTimeout(()=>{if(b.isConnected){b.dataset.arm="";b.textContent="ফেরত"}},3000);return}
+    const sale=S.sales.find(x=>x.id===b.dataset.undo);if(sale)undoSale(sale)});
   $("bk-save").onclick=doBackup;$("bk-load").onclick=()=>{if(NATIVE)Android.pickBackup();else $("fileBak").click()};
   $("up-check").onclick=checkUpdate;
   if(P.driveUrl){$("dr-now").onclick=()=>driveBackup(true);$("dr-off").onclick=()=>{S.prefs.driveUrl="";saveNow();renderSum()}}
@@ -501,6 +543,35 @@ function renderSum(){
 }
 const bnVer=v=>v.replace(/\d/g,d=>BN[d]);
 const bnTime=ms=>{const d=new Date(ms);return bnDate(dayKey(d))+" "+bnRaw(d.getHours())+":"+bnRaw(d.getMinutes()).padStart(2,"০")};
+
+/* ---------- charts ---------- */
+function chartsHtml(){
+  // 1) last 14 days: sales and profit
+  const days=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=dayKey(d),v=S.days[k]||{};days.push({k,d:d.getDate(),rev:v.rev||0,profit:v.profit||0})}
+  const max=Math.max(100,...days.map(x=>x.rev)),nice=niceMax(max);
+  const W=340,H=190,L=44,B=24,T=10,cw=(W-L-4)/14,bw=cw*0.36;
+  const y=v=>T+(H-T-B)*(1-v/nice);
+  let g="";for(let i=0;i<=2;i++){const v=nice*i/2,yy=y(v);g+=`<line x1="${L}" x2="${W}" y1="${yy}" y2="${yy}" style="stroke:var(--line)"/><text x="${L-6}" y="${yy+4}" text-anchor="end" style="fill:var(--muted);font-size:11px">${short(v)}</text>`}
+  let bars="";days.forEach((x,i)=>{const cx=L+cw*i+cw/2;
+    bars+=`<rect x="${cx-bw-1}" y="${y(x.rev)}" width="${bw}" height="${Math.max(0,y(0)-y(x.rev))}" rx="2" style="fill:var(--accent);opacity:.45"/>`;
+    const pv=Math.max(0,x.profit);bars+=`<rect x="${cx+1}" y="${y(pv)}" width="${bw}" height="${Math.max(0,y(0)-y(pv))}" rx="2" style="fill:var(--price)"/>`;
+    if(i%2===1||i===13)bars+=`<text x="${cx}" y="${H-8}" text-anchor="middle" style="fill:${i===13?"var(--fg)":"var(--muted)"};font-size:11px;${i===13?"font-weight:700":""}">${i===13?"আজ":bnRaw(x.d)}</text>`});
+  const daily=`<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="গত ১৪ দিনের বিক্রি ও লাভ">${g}${bars}</svg>
+    <div class="legend"><span><i style="background:var(--accent);opacity:.45"></i>বিক্রি</span><span><i style="background:var(--price)"></i>লাভ</span><span>১৪ দিনে বিক্রি ৳${bn(days.reduce((a,x)=>a+x.rev,0))} · লাভ ৳${bn(days.reduce((a,x)=>a+x.profit,0))}</span></div></div>`;
+  // 2) sales by category
+  const byCat={};S.items.forEach(it=>{const r=it.rev??0;if(r>0)byCat[it.cat||"অন্যান্য"]=(byCat[it.cat||"অন্যান্য"]||0)+r});
+  const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  // 3) where the money went
+  const spend={"মাল কেনা":0,"গাড়ি ভাড়া/পার্সেল":0};S.items.forEach(it=>{spend["মাল কেনা"]+=it.total||0;spend["গাড়ি ভাড়া/পার্সেল"]+=it.fare||0;(it.extra||[]).forEach(c=>spend[c.l]=(spend[c.l]||0)+(+c.a||0))});
+  const sp=Object.entries(spend).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+  return `<div class="sec"><h3>গত ১৪ দিন</h3>${daily}</div>
+  <div class="sec"><h3>কোন ধরনের মাল বেশি বিক্রি</h3><div class="chart">${cats.length?hbars(cats):`<p class="help">বিক্রি শুরু হলে এখানে দেখাবে।</p>`}</div></div>
+  <div class="sec"><h3>টাকা কোথায় খরচ হলো</h3><div class="chart">${sp.length?hbars(sp,true):`<p class="help">মাল যোগ করলে এখানে দেখাবে।</p>`}</div></div>`;
+}
+function hbars(rows,warm){const m=Math.max(...rows.map(r=>r[1]),1);
+  return rows.map(([l,v])=>`<div class="hb"><span>${esc(l)}</span><div class="bar" style="width:${Math.max(1,v/m*100)}%;${warm?"background:var(--warn)":""}"></div><b>৳${bn(v)}</b></div>`).join("")}
+function niceMax(v){const p=Math.pow(10,Math.floor(Math.log10(v)));const n=v/p;return (n<=1?1:n<=2?2:n<=5?5:10)*p}
+function short(v){return v>=1000?(v%1000===0?bnRaw(v/1000):String((v/1000).toFixed(1)).replace(/\d/g,d=>BN[d]))+"হা":bnRaw(v)}
 
 /* ---------- phone backup ---------- */
 function doBackup(){
