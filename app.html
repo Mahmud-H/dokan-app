@@ -320,7 +320,7 @@ input:disabled{opacity:.6}
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="2.0";
+const APPV="2.0.1";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED={"v": 3, "items": [], "days": {}};
 const NATIVE=typeof window.Android!=="undefined";
@@ -1075,7 +1075,7 @@ function viewSettings(box){
       <div class="btns"><button type="button" class="btn primary" id="dr-now">এখনই মিলিয়ে নিন</button><button type="button" class="btn" id="dr-off">বন্ধ করুন</button></div>`
     :`<p class="help">একবার সেট করলে internet পেলেই হিসাব আপনার Google Drive-এ চলে যাবে, আর দুই ফোনে app থাকলে দুটোর হিসাব মিলে এক হয়ে যাবে। সেট করার নিয়ম Claude-এর কাছে আছে।</p>
       <label class="f">Drive লিংক<input id="dr-url" placeholder="https://script.google.com/macros/s/…/exec" inputmode="url" autocomplete="off"></label>
-      <label class="f">দোকানের কোড (অন্য ফোনে আগে চালু করে থাকলে সেই কোড দিন, নইলে খালি রাখুন)<input id="dr-code" inputmode="numeric" autocomplete="off"></label>
+      <label class="f">দোকানের কোড (অন্য ফোনে আগে চালু করে থাকলে সেই কোড দিন, নইলে খালি রাখুন)<input id="dr-code" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
       <button type="button" class="btn primary" id="dr-save">চালু করুন</button>`}</div>
   <div class="sec"><h3>ফোনে Backup</h3>
     <p class="help">${since===null?"এখনো ফোনে Backup নেওয়া হয়নি।":`শেষ Backup ${bn(since)} দিন আগে।`} ফাইলটা Download/Dokan ফোল্ডারে সেভ হবে, সাথে WhatsApp বা Drive-এ পাঠানোর অপশন আসবে।</p>
@@ -1087,7 +1087,7 @@ function viewSettings(box){
   $("up-check").onclick=checkUpdate;
   if(P.driveUrl){$("dr-now").onclick=()=>sync(true);$("dr-off").onclick=()=>armed($("dr-off"),()=>{S.prefs.driveUrl="";saveNow();renderMore()})}
   else $("dr-save").onclick=()=>{const u=$("dr-url").value.trim();if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/.test(u)){toast("লিংকটা ঠিক না। script.google.com দিয়ে শুরু, /exec দিয়ে শেষ হওয়া লিংক দিন।",null,null,5000);return}
-    const code=toEn($("dr-code").value).replace(/\D/g,"");
+    const code=toEn($("dr-code").value).replace(/\s/g,"");
     S.prefs.driveUrl=u.split("?")[0];S.prefs.driveKey=code||S.prefs.driveKey||String(Math.floor(1e7+Math.random()*9e7));S.prefs.syncSince=0;S.prefs.lastPush=0;saveNow();renderMore();sync(true)};
   if($("pn-bio"))$("pn-bio").onclick=()=>{S.prefs.bio=S.prefs.bio===false;saveNow();renderMore();toast(S.prefs.bio?"আঙুলের ছাপ চালু হলো":"আঙুলের ছাপ বন্ধ হলো")};
   if(P.pin){$("pn-off").onclick=()=>armed($("pn-off"),()=>{S.prefs.pin="";saveNow();renderMore();toast("PIN বন্ধ হলো")});$("pn-change").onclick=()=>{S.prefs.pin="";saveNow();renderMore()}}
