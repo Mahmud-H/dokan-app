@@ -320,7 +320,7 @@ input:disabled{opacity:.6}
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="1.5.1";
+const APPV="2.0";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED={"v": 3, "items": [], "days": {}};
 const NATIVE=typeof window.Android!=="undefined";
@@ -340,13 +340,13 @@ const roundUp5=n=>Math.ceil(n/5)*5;
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
 /* ---------- storage: one JSON on the phone ---------- */
-const BLANK=()=>({v:3,trips:[],items:[],days:{},sales:[],customers:[],loans:[],expenses:[],cash:{},services:[],suppliers:[],shop:[],lastBackup:0,prefs:{view:"list",driveUrl:"",driveKey:"",lastDrive:0,lastDriveTry:0,dirty:false,pin:"",rates:{}}});
+const BLANK=()=>({v:0,dayAdj:[],tomb:{},trips:[],items:[],days:{},sales:[],customers:[],loans:[],expenses:[],cash:{},services:[],suppliers:[],shop:[],lastBackup:0,prefs:{view:"list",driveUrl:"",driveKey:"",lastDrive:0,lastDriveTry:0,dirty:false,pin:"",rates:{}}});
 let S=BLANK();
 function normalize(d){
   const s=Object.assign(BLANK(),d);s.prefs=Object.assign(BLANK().prefs,d.prefs||{});
-  ["sales","customers","loans","expenses","services","suppliers","shop","trips"].forEach(k=>{if(!Array.isArray(s[k]))s[k]=[]});if(!s.cash||typeof s.cash!=="object")s.cash={};
+  ["sales","customers","loans","expenses","services","suppliers","shop","trips","dayAdj"].forEach(k=>{if(!Array.isArray(s[k]))s[k]=[]});if(!s.cash||typeof s.cash!=="object")s.cash={};if(!s.tomb||typeof s.tomb!=="object")s.tomb={};
   s.items.forEach(it=>{if(it.rev==null)it.rev=(it.sold||0)*(it.sell||0)});
-  return s;
+  return migrate4(s);
 }
 function loadState(){
   let raw=null;
@@ -354,13 +354,102 @@ function loadState(){
   if(raw){try{const d=JSON.parse(raw);if(d&&Array.isArray(d.items)){S=normalize(d);return}}catch(e){}}
   S=normalize(JSON.parse(JSON.stringify(SEED)));saveNow();
 }
-function saveNow(){const s=JSON.stringify(S);try{NATIVE?Android.save(s):localStorage.setItem("dokan-data",s)}catch(e){toast("সেভ হয়নি! ফোনে জায়গা আছে কিনা দেখুন।")}}
-let saveT;function save(){S.prefs.dirty=true;clearTimeout(saveT);saveT=setTimeout(saveNow,150)}
-document.addEventListener("visibilitychange",()=>{if(document.hidden){clearTimeout(saveT);saveNow();autoDrive()}});
-const today=()=>S.days[dayKey()]||(S.days[dayKey()]={n:0,rev:0,profit:0});
+function saveNow(){stampAll(true);const s=JSON.stringify(S);try{NATIVE?Android.save(s):localStorage.setItem("dokan-data",s)}catch(e){toast("সেভ হয়নি! ফোনে জায়গা আছে কিনা দেখুন।")}}
+let saveT;function save(){S.prefs.dirty=true;clearTimeout(saveT);saveT=setTimeout(saveNow,150);if(S.prefs.driveUrl)syncSoon()}
+document.addEventListener("visibilitychange",()=>{if(document.hidden){clearTimeout(saveT);saveNow();if(S.prefs.dirty)sync(false)}else autoSync()});
+const today=()=>S.days[dayKey()]||{n:0,rev:0,profit:0};
 const extraSum=it=>(it.extra||[]).reduce((a,c)=>a+(+c.a||0),0);
 const unit=it=>it.qty>0&&it.total>0?(it.total+(it.fare||0)+extraSum(it))/it.qty:null;
 const left=it=>Math.max(0,(it.qty||0)-(it.sold||0));
+
+/* ---------- shared merge rules (the Drive script uses the same rules) ---------- */
+const SYNC_COLS=["items","sales","customers","loans","expenses","services","suppliers","shop","trips","dayAdj"];
+const SYNC_MAPS=["cash"];
+function mergeRec(a,b){
+  if(!a)return b;if(!b)return a;
+  const win=(b.u||0)>(a.u||0)?b:a,r=Object.assign({},win);
+  ["entries","payments"].forEach(k=>{if(a[k]||b[k])r[k]=mergeArr(a[k]||[],b[k]||[])});
+  return r;
+}
+function mergeArr(x,y){const m=new Map();x.forEach(e=>m.set(e.id,e));y.forEach(e=>m.set(e.id,m.has(e.id)?mergeRec(m.get(e.id),e):e));return [...m.values()].sort((p,q)=>(p.t||0)-(q.t||0))}
+function dropTombNested(r,tomb){["entries","payments"].forEach(k=>{if(Array.isArray(r[k]))r[k]=r[k].filter(e=>!tomb[e.id])});return r}
+/* ---------- counts derived from the sales list (so two phones never overwrite each other's sales) ---------- */
+function recount(){
+  const by={};
+  S.sales.forEach(s=>{const b=by[s.item]||(by[s.item]={q:0,r:0,v:{},last:0});b.q+=s.qty;b.r+=s.qty*s.price;if(s.vid)b.v[s.vid]=(b.v[s.vid]||0)+s.qty;if(s.t>b.last)b.last=s.t});
+  S.items.forEach(it=>{const b=by[it.id]||{q:0,r:0,v:{},last:0};it.sold=(it.soldBase||0)+b.q;it.rev=(it.revBase||0)+b.r;it.lastSold=b.last||it.lastSoldBase||0;
+    (it.vars||[]).forEach(v=>v.sold=(v.soldBase||0)+(b.v[v.id]||0))});
+  const days={};
+  S.sales.forEach(s=>{const k=dayKey(new Date(s.t)),d=days[k]||(days[k]={n:0,rev:0,profit:0});d.n+=s.qty;d.rev+=s.qty*s.price;d.profit+=s.qty*(s.price-(s.cost||0))});
+  S.dayAdj.forEach(a=>{const d=days[a.day]||(days[a.day]={n:0,rev:0,profit:0});d.n+=a.n||0;d.rev+=a.rev||0;d.profit+=a.profit||0});
+  S.days=days;
+}
+/* one-time change of older data to the mergeable form */
+function migrate4(s){
+  if((s.v||0)>=4)return s;
+  const by={};
+  s.sales.forEach(x=>{if(!x.id)x.id=newId();const b=by[x.item]||(by[x.item]={q:0,r:0,v:{}});b.q+=x.qty;b.r+=x.qty*x.price;
+    const it=s.items.find(i=>i.id===x.item);if(x.v!=null&&it&&it.vars&&it.vars[x.v]){const v=it.vars[x.v];if(!v.id)v.id=newId();x.vid=v.id;b.v[v.id]=(b.v[v.id]||0)+x.qty}});
+  s.items.forEach(it=>{const b=by[it.id]||{q:0,r:0,v:{}};it.soldBase=(it.sold||0)-b.q;it.revBase=(it.rev!=null?it.rev:(it.sold||0)*(it.sell||0))-b.r;it.lastSoldBase=it.lastSold||0;
+    (it.vars||[]).forEach(v=>{if(!v.id)v.id=newId();v.soldBase=(v.sold||0)-(b.v[v.id]||0)})});
+  const fromSales={};
+  s.sales.forEach(x=>{const k=dayKey(new Date(x.t)),d=fromSales[k]||(fromSales[k]={n:0,rev:0,profit:0});d.n+=x.qty;d.rev+=x.qty*x.price;d.profit+=x.qty*(x.price-(x.cost||0))});
+  Object.entries(s.days||{}).forEach(([k,d])=>{const f=fromSales[k]||{n:0,rev:0,profit:0},a={n:(d.n||0)-f.n,rev:(d.rev||0)-f.rev,profit:(d.profit||0)-f.profit};
+    if(Math.abs(a.n)+Math.abs(a.rev)+Math.abs(a.profit)>0.5)s.dayAdj.push({id:"adj-"+k,day:k,...a})});
+  s.loans.forEach(l=>(l.payments||[]).forEach(p=>{if(!p.id)p.id="p"+p.t+Math.random().toString(36).slice(2,5)}));
+  Object.entries(s.cash).forEach(([k,c])=>{c.id="cash-"+k});
+  s.v=4;return s;
+}
+
+/* ---------- change stamps: every record that changed gets a new time, so the newest edit wins ---------- */
+const HASH=new Map();
+const hashOf=r=>JSON.stringify(r,(k,v)=>k==="sold"||k==="rev"||k==="u"||k==="su"||k==="lastSold"?undefined:v);
+function eachRec(fn){SYNC_COLS.forEach(c=>S[c].forEach(fn));SYNC_MAPS.forEach(m=>Object.entries(S[m]).forEach(([k,r])=>{if(!r.id)r.id=m+"-"+k;fn(r)}))}
+function stampAll(mark){const now=Date.now();eachRec(r=>{const h=hashOf(r);if(HASH.get(r.id)!==h){if(mark&&HASH.has(r.id))r.u=now;else if(mark&&!r.u)r.u=now;HASH.set(r.id,h)}})}
+function kill(col,rec){S[col]=S[col].filter(x=>x!==rec);S.tomb[rec.id]=Date.now();HASH.delete(rec.id)}
+function killNested(rec,key,id){rec[key]=(rec[key]||[]).filter(e=>e.id!==id);S.tomb[id]=Date.now()}
+
+/* ---------- two-phone sync through the user's own Drive script ---------- */
+let syncBusy=false,syncT=null;
+function syncSoon(ms){clearTimeout(syncT);syncT=setTimeout(()=>sync(false),ms||20000)}
+async function sync(manual){
+  const P=S.prefs;if(!P.driveUrl||syncBusy)return;
+  if(!navigator.onLine){if(manual)toast("Internet নেই। Internet পেলে নিজে থেকে মিলিয়ে নেবে।");return}
+  syncBusy=true;P.lastDriveTry=Date.now();if(manual)toast("মিলানো হচ্ছে…",null,null,15000);
+  clearTimeout(saveT);stampAll(true);
+  const lastPush=P.lastPush||0,startPush=Date.now(),changes={tomb:{},cols:{},maps:{}};
+  Object.entries(S.tomb).forEach(([id,t])=>{if(t>=lastPush)changes.tomb[id]=t});
+  SYNC_COLS.forEach(c=>{const r=S[c].filter(x=>(x.u||0)>=lastPush||!lastPush);if(r.length)changes.cols[c]=r});
+  SYNC_MAPS.forEach(m=>{const r={};Object.entries(S[m]).forEach(([k,x])=>{if((x.u||0)>=lastPush||!lastPush)r[k]=x});if(Object.keys(r).length)changes.maps[m]=r});
+  try{
+    const res=await fetch(P.driveUrl,{method:"POST",body:JSON.stringify({key:P.driveKey,op:"sync",since:P.syncSince||0,changes})});
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.err||"fail");
+    if(!j.changes)throw new Error("old");
+    applyRemote(j.changes);
+    P.syncSince=j.now;P.lastPush=startPush;P.lastDrive=Date.now();P.dirty=false;
+    recount();stampAll(false);saveNow();render();refresh();
+    if(manual)toast("দুই ফোন মিলে গেছে ✓");
+  }catch(e){
+    const m=String(e.message);
+    if(manual)toast(m==="key"?"দোকানের কোড মেলেনি। প্রথম ফোনের কোডটা দিন।":m==="old"?"Drive script পুরনো। নতুন code বসাতে হবে (Claude-কে জিজ্ঞেস করুন)।":"মিলানো যায়নি। লিংক বা internet দেখুন।",null,null,6000);
+    P.syncErr=m;saveNow();
+  }finally{syncBusy=false}
+}
+function applyRemote(ch){
+  Object.entries(ch.tomb||{}).forEach(([id,t])=>{S.tomb[id]=Math.max(S.tomb[id]||0,t)});
+  const tomb=S.tomb;
+  SYNC_COLS.forEach(c=>{
+    const incoming=(ch.cols||{})[c]||[];if(!incoming.length&&!Object.keys(ch.tomb||{}).length)return;
+    const map=new Map(S[c].map(x=>[x.id,x]));
+    incoming.forEach(r=>{map.set(r.id,mergeRec(map.get(r.id),r))});
+    S[c]=[...map.values()].filter(x=>!tomb[x.id]).map(x=>dropTombNested(x,tomb));
+  });
+  SYNC_MAPS.forEach(m=>{Object.entries((ch.maps||{})[m]||{}).forEach(([k,r])=>{S[m][k]=mergeRec(S[m][k],r)})});
+}
+function autoSync(){const P=S.prefs;if(!P.driveUrl)return;const now=Date.now();if(now-(P.lastDriveTry||0)>60e3)sync(false)}
+window.addEventListener("online",()=>setTimeout(autoSync,3000));
+setInterval(()=>{if(!document.hidden&&S.prefs.driveUrl&&Date.now()-(S.prefs.lastDriveTry||0)>3*60e3)sync(false)},60e3);
 
 /* ---------- ui basics ---------- */
 let cat="সব",view="list";
@@ -441,20 +530,16 @@ $("sellForm").onsubmit=e=>{e.preventDefault();const p=num($("s-price").value);if
   let cust=null;if(sPay==="due"){const v=$("s-cust").value;if(v===OTHER){const n=$("s-newcust").value.trim();if(!n){$("s-hint").textContent="কাস্টমারের নাম লিখুন";return}cust=findOrMakeCustomer(n)}else if(v)cust=S.customers.find(c=>c.id===v);if(!cust){$("s-hint").textContent="কার কাছে বাকি, বেছে নিন";return}}
   $("sellBg").hidden=true;doSale(selling,sQty,p,sVar,cust)};
 function doSale(it,q,p,vi,cust){
-  const u=unit(it)??0,t=today(),vn=vi!=null&&it.vars?it.vars[vi].n:null,sale={id:newId(),t:Date.now(),item:it.id,name:it.name+(vn?` (${vn})`:""),qty:q,price:p,cost:u};
-  if(vn){it.vars[vi].sold+=q;sale.v=vi}
+  const u=unit(it)??0,vn=vi!=null&&it.vars?it.vars[vi].n:null,sale={id:newId(),t:Date.now(),item:it.id,name:it.name+(vn?` (${vn})`:""),qty:q,price:p,cost:u};
+  if(vn)sale.vid=it.vars[vi].id;
   if(cust){sale.due=cust.id;(cust.entries=cust.entries||[]).push({id:newId(),t:sale.t,type:"due",amt:q*p,note:`${sale.name} × ${bnRaw(q)}`,sale:sale.id})}
-  it.lastSold=sale.t;
-  it.sold=(it.sold||0)+q;it.rev=(it.rev||0)+q*p;t.n+=q;t.rev+=q*p;t.profit+=q*(p-u);S.sales.push(sale);
-  if(S.sales.length>3000)S.sales=S.sales.slice(-3000);
+  S.sales.push(sale);recount();
   save();render();
   toast(`${sale.name}: ${bn(q)}টা ${cust?cust.name+"-এর কাছে বাকিতে":"বিক্রি"}, ৳${bn(q*p)}`,"ফেরত",()=>undoSale(sale),6000);
 }
-function undoSale(sale){const it=S.items.find(i=>i.id===sale.item),t=S.days[dayKey(new Date(sale.t))];
-  if(it){it.sold=Math.max(0,(it.sold||0)-sale.qty);it.rev=Math.max(0,(it.rev||0)-sale.qty*sale.price);if(sale.v!=null&&it.vars&&it.vars[sale.v])it.vars[sale.v].sold=Math.max(0,it.vars[sale.v].sold-sale.qty)}
-  if(sale.due){const c=S.customers.find(x=>x.id===sale.due);if(c)c.entries=(c.entries||[]).filter(e=>e.sale!==sale.id)}
-  if(t){t.n-=sale.qty;t.rev-=sale.qty*sale.price;t.profit-=sale.qty*(sale.price-sale.cost)}
-  S.sales=S.sales.filter(s=>s.id!==sale.id);save();render();refresh();toast("বিক্রি ফেরত নেওয়া হলো")}
+function undoSale(sale){
+  if(sale.due){const c=S.customers.find(x=>x.id===sale.due);if(c)(c.entries||[]).filter(e=>e.sale===sale.id).forEach(e=>killNested(c,"entries",e.id))}
+  kill("sales",sale);recount();save();render();refresh();toast("বিক্রি ফেরত নেওয়া হলো")}
 
 /* ---------- photos ---------- */
 const slots={o:null,e:null,t:null};let photoSlot=null;
@@ -614,7 +699,7 @@ function openEdit(it){
   $("e-name").value=it.name;$("e-cat").value=it.cat||"অন্যান্য";setSrc("e",it.src||"");
   $("e-qty").value=bnRaw(it.qty||0);$("e-sold").value=bnRaw(it.sold||0);$("e-total").value=bnRaw(it.total||0);$("e-fare").value=bnRaw(it.fare||0);$("e-sell").value=bnRaw(it.sell||0);
   costs.e=(it.extra||[]).map(c=>({l:c.l,a:c.a}));drawCosts("e");
-  varsEd.e=(it.vars||[]).map(v=>({n:v.n,qty:v.qty,sold:v.sold}));drawVars("e");
+  varsEd.e=(it.vars||[]).map(v=>({id:v.id,n:v.n,qty:v.qty,sold:v.sold,soldBase:v.soldBase||0}));drawVars("e");
   const tr=it.trip&&S.trips.find(t=>t.id===it.trip);$("e-farebox").hidden=!!tr;$("e-costs").hidden=!!tr;$("e-tripnote").hidden=!tr;
   if(tr)$("e-tripnote").innerHTML=`এটা <b>${esc(tr.src)}</b> (${bnDate(dayKey(new Date(tr.t)))}) ব্যাচের জিনিস। ভাড়া আর অন্য খরচ থেকে এর ভাগে পড়েছে ৳${bn((it.fare||0)+extraSum(it))}। ব্যাচের খরচ বদলাতে <b>মাল যোগ → ব্যাচে কেনাকাটা</b>-য় ব্যাচটা খুলুন।`;
   $("e-addq").value="";$("e-addt").value="";delArm=false;$("e-del").textContent="মুছুন";
@@ -624,9 +709,9 @@ function closeEdit(){$("editBg").hidden=true;editing=null}
 $("e-cancel").onclick=closeEdit;$("editBg").onclick=e=>{if(e.target===$("editBg"))closeEdit()};
 $("e-del").onclick=()=>{
   if(!delArm){delArm=true;$("e-del").textContent="নিশ্চিত? আবার চাপুন";return}
-  const it=editing;closeEdit();S.items=S.items.filter(i=>i!==it);
+  const it=editing;closeEdit();kill("items",it);
   const tr=it.trip&&S.trips.find(t=>t.id===it.trip);if(tr)redistribute(tr);save();render();drawTripList();
-  toast(`${it.name} মুছে ফেলা হলো`,"ফেরত",()=>{S.items.push(it);if(tr)redistribute(tr);save();render();drawTripList()});
+  toast(`${it.name} মুছে ফেলা হলো`,"ফেরত",()=>{delete S.tomb[it.id];S.items.push(it);if(tr)redistribute(tr);save();render();drawTripList()});
 };
 $("edit").onsubmit=e=>{
   e.preventDefault();const it=editing;if(!it)return;
@@ -634,14 +719,14 @@ $("edit").onsubmit=e=>{
   if(!name||!(sellP>0)){$("e-err").textContent="নাম আর বিক্রির দাম দিতে হবে।";return}
   if(!it.created)it.created=it.updated||Date.now();
   const newSold=num($("e-sold").value);
-  if(newSold!==(it.sold||0)){it.rev=(it.rev||0)+(newSold-(it.sold||0))*sellP;if(it.rev<0)it.rev=0}
-  Object.assign(it,{name,cat:$("e-cat").value,src:getSrc("e"),qty:num($("e-qty").value)+num($("e-addq").value),sold:newSold,
+  if(newSold!==(it.sold||0)&&!(it.vars||[]).length){const dl=newSold-(it.sold||0);it.soldBase=(it.soldBase||0)+dl;it.revBase=(it.revBase||0)+dl*sellP}
+  Object.assign(it,{name,cat:$("e-cat").value,src:getSrc("e"),qty:num($("e-qty").value)+num($("e-addq").value),
     total:num($("e-total").value)+num($("e-addt").value),sell:sellP,updated:Date.now()});
   const tr=it.trip&&S.trips.find(t=>t.id===it.trip);
   if(tr)redistribute(tr);else{it.fare=num($("e-fare").value);it.extra=cleanCosts("e")}
   if(it.autoSell&&sellP!==it.sell)delete it.autoSell;
-  const vs=cleanVars("e");if(vs.length){it.vars=vs;it.qty=vs.reduce((a,v)=>a+v.qty,0);it.sold=vs.reduce((a,v)=>a+v.sold,0)}else delete it.vars;
-  if(it.sold>it.qty)it.sold=it.qty;
+  const vs=cleanVars("e");if(vs.length){it.vars=vs;it.qty=vs.reduce((a,v)=>a+v.qty,0)}else delete it.vars;
+  recount();
   if(slots.e)it.thumb=slots.e;
   closeEdit();save();render();if(view==="add")drawTripList();toast("সেভ হলো");
 };
@@ -724,30 +809,14 @@ function restoreText(txt){
   try{const d=JSON.parse(txt);if(!d||!Array.isArray(d.items))throw 0;pendingRestore=d}catch(e){toast("এটা দামের খাতার Backup ফাইল না।");return}
   toast(`Backup-এ ${bn(pendingRestore.items.length)}টা জিনিস আছে। এখনকার হিসাব মুছে এটা বসাবেন?`,"হ্যাঁ, বসান",()=>{
     const keep=S.prefs;S=normalize(pendingRestore);S.prefs.pin="";if(!S.prefs.driveUrl&&keep.driveUrl){S.prefs.driveUrl=keep.driveUrl;S.prefs.driveKey=keep.driveKey}
+    S.prefs.syncSince=0;S.prefs.lastPush=0;HASH.clear();recount();
     saveNow();render();refresh();toast("Backup থেকে সব ফিরে এসেছে")},9000);
 }
 window.onBackup=b64=>{try{restoreText(new TextDecoder().decode(Uint8Array.from(atob(b64),c=>c.charCodeAt(0))))}catch(e){toast("ফাইলটা পড়া যায়নি।")}};
 $("fileBak").onchange=async()=>{const f=$("fileBak").files[0];$("fileBak").value="";if(f)restoreText(await f.text())};
 
-/* ---------- Google Drive auto backup (through the user's own Apps Script) ---------- */
-let driveBusy=false;
-async function driveBackup(manual){
-  const P=S.prefs;if(!P.driveUrl||driveBusy)return;
-  if(!navigator.onLine){if(manual)toast("Internet নেই। Internet পেলে নিজে থেকে পাঠাবে।");return}
-  driveBusy=true;P.lastDriveTry=Date.now();if(manual)toast("Drive-এ পাঠানো হচ্ছে…",null,null,8000);
-  try{
-    const r=await fetch(P.driveUrl,{method:"POST",body:JSON.stringify({key:P.driveKey,data:S})});
-    const j=await r.json();
-    if(!j.ok)throw new Error(j.err||"fail");
-    P.lastDrive=Date.now();P.dirty=false;saveNow();
-    if(manual)toast("Drive-এ Backup হয়ে গেছে ✓");
-  }catch(e){if(manual)toast(String(e.message)==="key"?"এই Drive লিংকটা অন্য ফোনের সাথে যুক্ত। নতুন লিংক বানাতে হবে।":"Drive-এ পাঠানো যায়নি। লিংক বা internet দেখুন।",null,null,5000)}
-  finally{driveBusy=false;refresh()}
-}
-function autoDrive(){const P=S.prefs;if(!P.driveUrl)return;const now=Date.now();
-  if((P.dirty||now-P.lastDrive>864e5)&&now-P.lastDriveTry>15*60e3)driveBackup(false)}
-window.addEventListener("online",()=>setTimeout(autoDrive,3000));
-
+/* ---------- Google Drive: backup + two-phone sync ---------- */
+function driveBackup(manual){return sync(manual)}
 /* ---------- updates ---------- */
 const verNum=v=>v.split(".").reduce((a,x)=>a*1000+(+x||0),0);
 async function checkUpdate(){
@@ -819,8 +888,8 @@ function viewBaki(box,id){
       (c.entries=c.entries||[]).push({id:newId(),t:Date.now(),type,amt:a,note:$("bk-note").value.trim()||(type==="pay"?"নগদ জমা":"বাকি")});save();renderMore();toast(type==="pay"?`৳${bn(a)} জমা হলো`:`৳${bn(a)} বাকি লেখা হলো`)};
     $("bk-pay").onclick=()=>add("pay");$("bk-due").onclick=()=>add("due");
     if($("bk-remind"))$("bk-remind").onclick=()=>shareText(`আসসালামু আলাইকুম। আপনার কাছে দোকানের বাকি ৳${bn(bal)} টাকা আছে। সুবিধামতো সময়ে পরিশোধ করার অনুরোধ রইল। ধন্যবাদ।`);
-    box.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>armed(b,()=>{c.entries=c.entries.filter(e=>e.id!==b.dataset.del);save();renderMore()}));
-    $("bk-delc").onclick=()=>armed($("bk-delc"),()=>{if(custBal(c)>0){toast("বাকি শোধ না হওয়া পর্যন্ত মোছা যাবে না");return}S.customers=S.customers.filter(x=>x!==c);save();moreView="baki";renderMore()});
+    box.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>armed(b,()=>{killNested(c,"entries",b.dataset.del);save();renderMore()}));
+    $("bk-delc").onclick=()=>armed($("bk-delc"),()=>{if(custBal(c)>0){toast("বাকি শোধ না হওয়া পর্যন্ত মোছা যাবে না");return}kill("customers",c);save();moreView="baki";renderMore()});
     return;
   }
   const list=[...S.customers].sort((a,b)=>custBal(b)-custBal(a)),owed=list.reduce((a,c)=>a+Math.max(0,custBal(c)),0);
@@ -871,12 +940,12 @@ function viewCash(box){
     ${monthExp.length?[...monthExp].reverse().map(e=>`<div class="mini"><span>${esc(e.l)}${e.note?" · "+esc(e.note):""}<br><small style="color:var(--muted)">${bnTime(e.t)}</small></span><span style="display:flex;gap:8px;align-items:center"><b>৳${bn(e.a)}</b><button type="button" class="undo" data-exdel="${e.id}">মুছুন</button></span></div>`).join(""):`<p class="help">এই মাসে এখনো কোনো খরচ লেখা হয়নি।</p>`}</div>`;
   const diff=()=>{const v=$("cs-count").value.trim();if(!v){$("cs-diff").innerHTML="";return}const d=num(v)-cashToday().expected;
     $("cs-diff").innerHTML=d===0?`<div class="okbox">হিসাব মিলে গেছে ✓</div>`:`<div class="warnbox">${d>0?`৳${bn(d)} বেশি আছে`:`৳${bn(-d)} কম আছে`}। কোনো বিক্রি বা খরচ লেখা বাকি থাকতে পারে।</div>`};
-  const day=()=>S.cash[dayKey()]||(S.cash[dayKey()]={});
+  const day=()=>S.cash[dayKey()]||(S.cash[dayKey()]={id:"cash-"+dayKey()});
   $("cs-open").onchange=()=>{day().open=num($("cs-open").value);save();renderMore()};
   $("cs-count").oninput=diff;$("cs-count").onchange=()=>{const v=$("cs-count").value.trim();day().counted=v?num(v):null;save()};diff();
   $("ex-add").onclick=()=>{const a=num($("ex-a").value);if(!(a>0)){toast("টাকার পরিমাণ লিখুন");return}
     S.expenses.push({id:newId(),t:Date.now(),l:$("ex-l").value,a,note:$("ex-n").value.trim()});save();renderMore();toast("খরচ যোগ হলো")};
-  box.querySelectorAll("[data-exdel]").forEach(b=>b.onclick=()=>armed(b,()=>{S.expenses=S.expenses.filter(e=>e.id!==b.dataset.exdel);save();renderMore()}));
+  box.querySelectorAll("[data-exdel]").forEach(b=>b.onclick=()=>armed(b,()=>{kill("expenses",S.expenses.find(e=>e.id===b.dataset.exdel));save();renderMore()}));
 }
 
 /* ---- ধারের হিসাব ---- */
@@ -901,8 +970,8 @@ function viewLoan(box){
     <button type="button" class="undo" data-ldel="${l.id}" style="align-self:flex-start">মুছুন</button></div>`}).join("")}</div>`;
   $("ln-add").onclick=()=>{const n=$("ln-n").value.trim(),a=num($("ln-a").value);if(!n||!(a>0)){toast("নাম আর টাকা লিখুন");return}S.loans.push({id:newId(),name:n,amount:a,t:Date.now(),payments:[]});save();renderMore()};
   box.querySelectorAll("[data-lpay]").forEach(b=>b.onclick=()=>{const l=S.loans.find(x=>x.id===b.dataset.lpay),a=num($("lp-"+l.id).value);if(!(a>0)){toast("টাকার পরিমাণ লিখুন");return}
-    (l.payments=l.payments||[]).push({t:Date.now(),amt:a});save();renderMore();toast(`৳${bn(a)} শোধ লেখা হলো`)});
-  box.querySelectorAll("[data-ldel]").forEach(b=>b.onclick=()=>armed(b,()=>{S.loans=S.loans.filter(x=>x.id!==b.dataset.ldel);save();renderMore()}));
+    (l.payments=l.payments||[]).push({id:newId(),t:Date.now(),amt:a});save();renderMore();toast(`৳${bn(a)} শোধ লেখা হলো`)});
+  box.querySelectorAll("[data-ldel]").forEach(b=>b.onclick=()=>armed(b,()=>{kill("loans",S.loans.find(x=>x.id===b.dataset.ldel));save();renderMore()}));
 }
 
 /* ---- কেনার তালিকা ---- */
@@ -922,8 +991,8 @@ function viewShop(box){
   <div class="btns" style="margin-top:14px"><button type="button" class="btn primary" id="sh-share">WhatsApp-এ পাঠান</button>${S.shop.some(x=>x.done)?`<button type="button" class="btn" id="sh-clear">কেনা হয়ে যাওয়াগুলো সরান</button>`:""}</div>`;
   $("sh-add").onclick=()=>{const n=$("sh-n").value.trim();if(!n){toast("নাম লিখুন");return}S.shop.push({id:newId(),name:n,qty:num($("sh-q").value),src:$("sh-src").value,done:false});save();renderMore()};
   box.querySelectorAll("[data-shdone]").forEach(c=>c.onchange=()=>{const x=S.shop.find(s=>s.id===c.dataset.shdone);x.done=c.checked;save();renderMore()});
-  box.querySelectorAll("[data-shdel]").forEach(b=>b.onclick=()=>{S.shop=S.shop.filter(s=>s.id!==b.dataset.shdel);save();renderMore()});
-  if($("sh-clear"))$("sh-clear").onclick=()=>{S.shop=S.shop.filter(s=>!s.done);save();renderMore()};
+  box.querySelectorAll("[data-shdel]").forEach(b=>b.onclick=()=>{kill("shop",S.shop.find(s=>s.id===b.dataset.shdel));save();renderMore()});
+  if($("sh-clear"))$("sh-clear").onclick=()=>{S.shop.filter(s=>s.done).forEach(x=>kill("shop",x));save();renderMore()};
   $("sh-share").onclick=()=>{const lines=["🛒 কেনার তালিকা"];Object.entries(groups).forEach(([g,rows])=>{const r=rows.filter(x=>!(x.man&&x.man.done));if(!r.length)return;lines.push("","📍 "+g);
     r.forEach(x=>lines.push("• "+(x.auto?`${x.it.name} (আছে ${bn(left(x.it))}টা${unit(x.it)!=null?`, আগে ৳${bn(unit(x.it))}/পিস`:""})`:`${x.man.name}${x.man.qty?" × "+bn(x.man.qty):""}`)))});
     if(lines.length<2){toast("তালিকা খালি");return}shareText(lines.join("\n"))};
@@ -947,7 +1016,7 @@ function viewSvc(box){
   $("sv-amt").oninput=hint;$("sv-comm").oninput=()=>$("sv-comm").dataset.touched="1";hint();
   $("sv-add").onclick=()=>{const a=num($("sv-amt").value),c=num($("sv-comm").value);if(!(a>0)){toast("টাকার পরিমাণ লিখুন");return}
     const [k,dir]=SVC[ki];S.services.push({id:newId(),t:Date.now(),k,amt:a,comm:c,dir});if(c>0)rates[k]=c/a;save();renderMore();toast(`${k} লেখা হলো`)};
-  box.querySelectorAll("[data-svdel]").forEach(b=>b.onclick=()=>armed(b,()=>{S.services=S.services.filter(s=>s.id!==b.dataset.svdel);save();renderMore()}));
+  box.querySelectorAll("[data-svdel]").forEach(b=>b.onclick=()=>armed(b,()=>{kill("services",S.services.find(s=>s.id===b.dataset.svdel));save();renderMore()}));
 }
 
 /* ---- পাইকারের তালিকা ---- */
@@ -961,7 +1030,7 @@ function viewSup(box){
     ${s.phone?`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="font-size:19px;user-select:all">${esc(s.phone)}</b><a class="btn" style="flex:none;text-decoration:none" href="tel:${esc(s.phone.replace(/[^\d+০-৯]/g,"").replace(/[০-৯]/g,d=>BN.indexOf(d)))}">📞 কল</a></div>`:""}
     ${s.note?`<p class="help">${esc(s.note)}</p>`:""}<button type="button" class="undo" data-spdel="${s.id}" style="align-self:flex-start">মুছুন</button></div>`).join(""):`<p class="help">এখনো কোনো পাইকার যোগ করা হয়নি।</p>`}</div>`;
   $("sp-add").onclick=()=>{const n=$("sp-n").value.trim();if(!n){toast("নাম লিখুন");return}S.suppliers.push({id:newId(),name:n,phone:$("sp-p").value.trim(),src:$("sp-src").value,note:$("sp-note").value.trim()});save();renderMore()};
-  box.querySelectorAll("[data-spdel]").forEach(b=>b.onclick=()=>armed(b,()=>{S.suppliers=S.suppliers.filter(x=>x.id!==b.dataset.spdel);save();renderMore()}));
+  box.querySelectorAll("[data-spdel]").forEach(b=>b.onclick=()=>armed(b,()=>{kill("suppliers",S.suppliers.find(x=>x.id===b.dataset.spdel));save();renderMore()}));
 }
 
 /* ---- মাসিক রিপোর্ট ---- */
@@ -999,11 +1068,14 @@ function viewSettings(box){
     :`<div class="two"><input class="inp" id="pn-new" type="password" inputmode="numeric" maxlength="4" placeholder="৪ সংখ্যার PIN"><button type="button" class="btn primary" id="pn-set">PIN চালু করুন</button></div>`}
     ${!P.pin&&bioAvail()?`<p class="help">আঙুলের ছাপ দিয়ে খুলতে আগে একটা PIN চালু করুন। আঙুলের ছাপ কাজ না করলে তখন PIN দিয়ে খুলবেন।</p>`:""}
     <p class="help">PIN ভুলে গেলে: app-এর data মুছে Backup থেকে ফেরত আনুন, তখন PIN উঠে যাবে।</p></div>
-  <div class="sec"><h3>Google Drive-এ নিজে থেকে Backup</h3>
-    ${P.driveUrl?`<div class="okbox">চালু আছে। Internet পেলেই হিসাব Drive-এর <b>Dokan Backup</b> ফোল্ডারে চলে যায়।<br>শেষ Drive backup: <b>${P.lastDrive?bnTime(P.lastDrive):"এখনো হয়নি"}</b></div>
-      <div class="btns"><button type="button" class="btn primary" id="dr-now">এখনই Drive-এ পাঠান</button><button type="button" class="btn" id="dr-off">বন্ধ করুন</button></div>`
-    :`<p class="help">একবার সেট করলে internet পেলেই হিসাব নিজে থেকে আপনার Google Drive-এ চলে যাবে। সেট করার নিয়ম Claude-এর কাছে আছে। শেষে যে লিংক পাবেন সেটা এখানে দিন:</p>
-      <label class="f">Drive Backup লিংক<input id="dr-url" placeholder="https://script.google.com/macros/s/…/exec" inputmode="url" autocomplete="off"></label>
+  <div class="sec"><h3>Google Drive: Backup আর দুই ফোন মেলানো</h3>
+    ${P.driveUrl?`<div class="okbox">চালু আছে। Internet পেলেই এই ফোনের হিসাব Drive-এ যায়, আর অন্য ফোনের নতুন হিসাব এখানে চলে আসে।<br>শেষ মিলানো: <b>${P.lastDrive?bnTime(P.lastDrive):"এখনো হয়নি"}</b></div>
+      ${P.syncErr&&P.lastDriveTry>P.lastDrive?`<div class="warnbox">শেষবার মিলানো যায়নি${P.syncErr==="old"?": Drive script পুরনো, নতুন code বসাতে হবে।":P.syncErr==="key"?": দোকানের কোড মেলেনি।":"। Internet পেলে আবার চেষ্টা করবে।"}</div>`:""}
+      <div class="calc">অন্য ফোনে চালু করতে সেখানে একই লিংক আর এই <b>দোকানের কোড</b> দিন:<br><b style="font-size:24px;letter-spacing:2px;user-select:all">${esc(P.driveKey||"")}</b></div>
+      <div class="btns"><button type="button" class="btn primary" id="dr-now">এখনই মিলিয়ে নিন</button><button type="button" class="btn" id="dr-off">বন্ধ করুন</button></div>`
+    :`<p class="help">একবার সেট করলে internet পেলেই হিসাব আপনার Google Drive-এ চলে যাবে, আর দুই ফোনে app থাকলে দুটোর হিসাব মিলে এক হয়ে যাবে। সেট করার নিয়ম Claude-এর কাছে আছে।</p>
+      <label class="f">Drive লিংক<input id="dr-url" placeholder="https://script.google.com/macros/s/…/exec" inputmode="url" autocomplete="off"></label>
+      <label class="f">দোকানের কোড (অন্য ফোনে আগে চালু করে থাকলে সেই কোড দিন, নইলে খালি রাখুন)<input id="dr-code" inputmode="numeric" autocomplete="off"></label>
       <button type="button" class="btn primary" id="dr-save">চালু করুন</button>`}</div>
   <div class="sec"><h3>ফোনে Backup</h3>
     <p class="help">${since===null?"এখনো ফোনে Backup নেওয়া হয়নি।":`শেষ Backup ${bn(since)} দিন আগে।`} ফাইলটা Download/Dokan ফোল্ডারে সেভ হবে, সাথে WhatsApp বা Drive-এ পাঠানোর অপশন আসবে।</p>
@@ -1013,9 +1085,10 @@ function viewSettings(box){
     <p class="help" style="text-align:center">এখনকার version ${bnVer(APPV)}</p></div>`;
   $("bk-save").onclick=doBackup;$("bk-load").onclick=()=>{if(NATIVE)Android.pickBackup();else $("fileBak").click()};
   $("up-check").onclick=checkUpdate;
-  if(P.driveUrl){$("dr-now").onclick=()=>driveBackup(true);$("dr-off").onclick=()=>{S.prefs.driveUrl="";saveNow();renderMore()}}
+  if(P.driveUrl){$("dr-now").onclick=()=>sync(true);$("dr-off").onclick=()=>armed($("dr-off"),()=>{S.prefs.driveUrl="";saveNow();renderMore()})}
   else $("dr-save").onclick=()=>{const u=$("dr-url").value.trim();if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/.test(u)){toast("লিংকটা ঠিক না। script.google.com দিয়ে শুরু, /exec দিয়ে শেষ হওয়া লিংক দিন।",null,null,5000);return}
-    S.prefs.driveUrl=u.split("?")[0];if(!S.prefs.driveKey)S.prefs.driveKey=newId()+newId();saveNow();driveBackup(true)};
+    const code=toEn($("dr-code").value).replace(/\D/g,"");
+    S.prefs.driveUrl=u.split("?")[0];S.prefs.driveKey=code||S.prefs.driveKey||String(Math.floor(1e7+Math.random()*9e7));S.prefs.syncSince=0;S.prefs.lastPush=0;saveNow();renderMore();sync(true)};
   if($("pn-bio"))$("pn-bio").onclick=()=>{S.prefs.bio=S.prefs.bio===false;saveNow();renderMore();toast(S.prefs.bio?"আঙুলের ছাপ চালু হলো":"আঙুলের ছাপ বন্ধ হলো")};
   if(P.pin){$("pn-off").onclick=()=>armed($("pn-off"),()=>{S.prefs.pin="";saveNow();renderMore();toast("PIN বন্ধ হলো")});$("pn-change").onclick=()=>{S.prefs.pin="";saveNow();renderMore()}}
   else $("pn-set").onclick=()=>{const v=toEn($("pn-new").value.trim());if(!/^\d{4}$/.test(v)){toast("৪টা সংখ্যা দিন");return}S.prefs.pin=v;unlockedUntil=Date.now()+10*60e3;saveNow();renderMore();toast("PIN চালু হলো। মনে রাখবেন!",null,null,4000)};
@@ -1053,7 +1126,7 @@ document.addEventListener("input",e=>{const t=e.target;if(!t.dataset||!t.dataset
   if(t.dataset.vk==="qty"){v.qty=num(t.value);syncVarQty(t.dataset.vp)}else v.n=t.value});
 document.addEventListener("click",e=>{const a=e.target.closest("[data-vadd]");if(a){const p=a.dataset.vadd;varsEd[p].push({n:"",qty:0,sold:0});drawVars(p);const ins=$(p+"-vars").querySelectorAll("input[data-vk=n]");ins[ins.length-1].focus();return}
   const d=e.target.closest("[data-vdel]");if(d){const p=d.dataset.vp,v=varsEd[p][+d.dataset.vdel];if(v&&v.sold){toast("এই সাইজের বিক্রি আছে, মোছা যাবে না");return}varsEd[p].splice(+d.dataset.vdel,1);drawVars(p)}});
-const cleanVars=p=>varsEd[p].filter(v=>v.n.trim()||v.qty>0).map((v,i)=>({n:v.n.trim()||("ধরন "+bnRaw(i+1)),qty:v.qty||0,sold:v.sold||0}));
+const cleanVars=p=>varsEd[p].filter(v=>v.n.trim()||v.qty>0).map((v,i)=>({id:v.id||newId(),n:v.n.trim()||("ধরন "+bnRaw(i+1)),qty:v.qty||0,soldBase:v.soldBase||0,sold:v.sold||0}));
 
 /* ---- slow movers + season ---- */
 const WINTER=/শীত|সোয়েটার|সুয়েটার|জ্যাকেট|কম্বল|মাফলার|টুপি|চাদর|হুডি|থার্মাল|মোজা|কানটুপি/;
@@ -1066,8 +1139,8 @@ function slowHtml(){
 }
 
 /* ---------- boot ---------- */
-loadState();setLayout(S.prefs.view==="grid",true);render();fillPlaces();drawVars("o");
+loadState();recount();stampAll(false);setLayout(S.prefs.view==="grid",true);render();fillPlaces();drawVars("o");
 if(NATIVE)try{Android.ready()}catch(e){}
-setTimeout(autoDrive,4000);
+setTimeout(autoSync,4000);
 </script>
 </body></html>
