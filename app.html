@@ -323,7 +323,7 @@ input:disabled{opacity:.6}
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="2.1";
+const APPV="2.1.1";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED={"v": 3, "items": [], "days": {}};
 const NATIVE=typeof window.Android!=="undefined";
@@ -753,8 +753,8 @@ function renderSum(){
     <div class="stat"><div class="k">বাকি পাওনা</div><div class="v" style="color:var(--warn)">৳${bn(owed)}</div><div class="k">${bn(S.customers.filter(c=>custBal(c)>0).length)} জনের কাছে</div></div>
     <div class="stat"><div class="k">ধার শোধ বাকি</div><div class="v">৳${bn(loanLeft)}</div><div class="k">মোট ধার ৳${bn(S.loans.reduce((a,l)=>a+l.amount,0))}</div></div>
   </div>
-  ${slowHtml()}
   ${chartsHtml()}
+  ${slowHtml()}
   <div class="sec"><h3>সাম্প্রতিক বিক্রি</h3><p class="help">ভুল করে বিক্রি লিখলে <b>ফেরত</b> চাপুন (দুইবার), মাল আবার দোকানে যোগ হবে।</p>
   ${recentSales.length?recentSales.map(s=>`<div class="mini"><span>${esc(s.name)} × ${bn(s.qty)}<br><small style="color:var(--muted)">${bnTime(s.t)}</small></span><span style="display:flex;gap:8px;align-items:center"><b>৳${bn(s.qty*s.price)}</b><button type="button" class="undo" data-undo="${s.id}">ফেরত</button></span></div>`).join(""):`<p class="help">এখনো কিছু বিক্রি হয়নি।</p>`}</div>
   <div class="sec"><h3>আবার আনতে হবে (২টা বা কম)</h3>${low.length?low.map(it=>`<div class="mini"><span>${esc(it.name)}</span><b class="stock ${left(it)?"low":"out"}">${left(it)?"আছে "+bn(left(it))+"টা":"শেষ"}</b></div>`).join(""):`<p class="help">সব জিনিসই যথেষ্ট আছে।</p>`}</div>
