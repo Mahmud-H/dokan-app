@@ -295,7 +295,7 @@ input:disabled{opacity:.6}
     </div>
     <div class="two">
       <label class="f">মোট কেনা দাম (৳)<input id="e-total" inputmode="decimal"></label>
-      <label class="f" id="e-farebox">ভাড়া/পার্সেল (৳)<input id="e-fare" inputmode="decimal"></label>
+      <label class="f" id="e-farebox"><span id="e-farelbl">ভাড়া/পার্সেল (৳)</span><input id="e-fare" inputmode="decimal"></label>
     </div>
     <div class="okbox" id="e-tripnote" hidden></div>
     <div class="costs" id="e-costs"></div>
@@ -323,7 +323,7 @@ input:disabled{opacity:.6}
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="2.1.1";
+const APPV="2.1.2";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED={"v": 3, "items": [], "days": {}};
 const NATIVE=typeof window.Android!=="undefined";
@@ -361,7 +361,9 @@ function saveNow(){stampAll(true);const s=JSON.stringify(S);try{NATIVE?Android.s
 let saveT;function save(){S.prefs.dirty=true;clearTimeout(saveT);saveT=setTimeout(saveNow,150);if(S.prefs.driveUrl)syncSoon()}
 document.addEventListener("visibilitychange",()=>{if(document.hidden){clearTimeout(saveT);saveNow();if(S.prefs.dirty)sync(false)}else autoSync()});
 const today=()=>S.days[dayKey()]||{n:0,rev:0,profit:0};
-const extraSum=it=>(it.extra||[]).reduce((a,c)=>a+(+c.a||0),0);
+const sumC=l=>(l||[]).reduce((a,c)=>a+(+c.a||0),0);
+const extraSum=it=>sumC(it.extra)+sumC(it.ownExtra)+(+it.ownFare||0);
+const batchShare=it=>(it.fare||0)+sumC(it.extra);
 const unit=it=>it.qty>0&&it.total>0?(it.total+(it.fare||0)+extraSum(it))/it.qty:null;
 const left=it=>Math.max(0,(it.qty||0)-(it.sold||0));
 
@@ -647,7 +649,7 @@ function calcHtml(qty,total,fare,sell,target){
     `৩০% লাভে দাম ৳${bn(s30)} <button type="button" class="link" data-set="${target}" data-v="${s30}">এটা বসান</button>`;
 }
 function oCalc(){$("o-calc").innerHTML=calcHtml(num($("o-qty").value),num($("o-total").value),num($("o-fare").value)+costSum("o"),num($("o-sell").value),"o-sell")}
-function eCalc(){$("e-calc").innerHTML=calcHtml(num($("e-qty").value),num($("e-total").value),num($("e-fare").value)+costSum("e"),num($("e-sell").value),"e-sell")}
+function eCalc(){$("e-calc").innerHTML=calcHtml(num($("e-qty").value),num($("e-total").value),num($("e-fare").value)+costSum("e")+(editing&&editing.trip?batchShare(editing):0),num($("e-sell").value),"e-sell")}
 ["o-qty","o-total","o-fare","o-sell"].forEach(id=>$(id).oninput=oCalc);
 ["e-qty","e-total","e-fare","e-sell"].forEach(id=>$(id).oninput=eCalc);
 document.addEventListener("click",e=>{const b=e.target.closest("[data-set]");if(!b)return;$(b.dataset.set).value=bnRaw(+b.dataset.v);b.dataset.set[0]==="o"?oCalc():eCalc()});
@@ -701,10 +703,12 @@ function openEdit(it){
   $("e-ph").innerHTML=it.thumb?`<img src="${esc(it.thumb)}" alt="">`:"📷";
   $("e-name").value=it.name;$("e-cat").value=it.cat||"অন্যান্য";setSrc("e",it.src||"");
   $("e-qty").value=bnRaw(it.qty||0);$("e-sold").value=bnRaw(it.sold||0);$("e-total").value=bnRaw(it.total||0);$("e-fare").value=bnRaw(it.fare||0);$("e-sell").value=bnRaw(it.sell||0);
-  costs.e=(it.extra||[]).map(c=>({l:c.l,a:c.a}));drawCosts("e");
+  const tr=it.trip&&S.trips.find(t=>t.id===it.trip);
+  if(tr)$("e-fare").value=it.ownFare?bnRaw(it.ownFare):"";
+  costs.e=((tr?it.ownExtra:it.extra)||[]).map(c=>({l:c.l,a:c.a}));drawCosts("e");
   varsEd.e=(it.vars||[]).map(v=>({id:v.id,n:v.n,qty:v.qty,sold:v.sold,soldBase:v.soldBase||0}));drawVars("e");
-  const tr=it.trip&&S.trips.find(t=>t.id===it.trip);$("e-farebox").hidden=!!tr;$("e-costs").hidden=!!tr;$("e-tripnote").hidden=!tr;
-  if(tr)$("e-tripnote").innerHTML=`এটা <b>${esc(tr.src)}</b> (${bnDate(dayKey(new Date(tr.t)))}) ব্যাচের জিনিস। ভাড়া আর অন্য খরচ থেকে এর ভাগে পড়েছে ৳${bn((it.fare||0)+extraSum(it))}। ব্যাচের খরচ বদলাতে <b>মাল যোগ → ব্যাচে কেনাকাটা</b>-য় ব্যাচটা খুলুন।`;
+  $("e-tripnote").hidden=!tr;$("e-farelbl").textContent=tr?"এই জিনিসের আলাদা ভাড়া (৳)":"ভাড়া/পার্সেল (৳)";
+  if(tr)$("e-tripnote").innerHTML=`এটা <b>${esc(tr.src)}</b> (${bnDate(dayKey(new Date(tr.t)))}) ব্যাচের জিনিস। ব্যাচের ভাড়া আর খরচ থেকে এর ভাগে পড়েছে <b>৳${bn(batchShare(it))}</b> (ব্যাচ খুলে বদলাতে হয়)।<br>শুধু এই জিনিসের জন্য <b>আলাদা</b> কোনো খরচ হলে (যেমন এটার জন্য আলাদা কুরিয়ার বা লেবার) নিচে লিখুন, ব্যাচের ভাগের সাথে যোগ হবে।`;
   $("e-addq").value="";$("e-addt").value="";delArm=false;$("e-del").textContent="মুছুন";
   $("editBg").hidden=false;eCalc();
 }
@@ -726,7 +730,7 @@ $("edit").onsubmit=e=>{
   Object.assign(it,{name,cat:$("e-cat").value,src:getSrc("e"),qty:num($("e-qty").value)+num($("e-addq").value),
     total:num($("e-total").value)+num($("e-addt").value),sell:sellP,updated:Date.now()});
   const tr=it.trip&&S.trips.find(t=>t.id===it.trip);
-  if(tr)redistribute(tr);else{it.fare=num($("e-fare").value);it.extra=cleanCosts("e")}
+  if(tr){it.ownFare=num($("e-fare").value);it.ownExtra=cleanCosts("e");redistribute(tr)}else{it.fare=num($("e-fare").value);it.extra=cleanCosts("e")}
   if(it.autoSell&&sellP!==it.sell)delete it.autoSell;
   const vs=cleanVars("e");if(vs.length){it.vars=vs;it.qty=vs.reduce((a,v)=>a+v.qty,0)}else delete it.vars;
   recount();
@@ -786,7 +790,7 @@ function chartsHtml(){
   const byCat={};S.items.forEach(it=>{const r=it.rev??0;if(r>0)byCat[it.cat||"অন্যান্য"]=(byCat[it.cat||"অন্যান্য"]||0)+r});
   const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
   // 3) where the money went
-  const spend={"মাল কেনা":0,"গাড়ি ভাড়া/পার্সেল":0};S.items.forEach(it=>{spend["মাল কেনা"]+=it.total||0;spend["গাড়ি ভাড়া/পার্সেল"]+=it.fare||0;(it.extra||[]).forEach(c=>spend[c.l]=(spend[c.l]||0)+(+c.a||0))});
+  const spend={"মাল কেনা":0,"গাড়ি ভাড়া/পার্সেল":0};S.items.forEach(it=>{spend["মাল কেনা"]+=it.total||0;spend["গাড়ি ভাড়া/পার্সেল"]+=(it.fare||0)+(+it.ownFare||0);(it.ownExtra||[]).forEach(c=>spend[c.l]=(spend[c.l]||0)+(+c.a||0));(it.extra||[]).forEach(c=>spend[c.l]=(spend[c.l]||0)+(+c.a||0))});
   S.expenses.forEach(e=>spend["দোকান: "+e.l]=(spend["দোকান: "+e.l]||0)+e.a);
   const sp=Object.entries(spend).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
   return `<div class="sec"><h3>গত ১৪ দিন</h3>${daily}</div>
