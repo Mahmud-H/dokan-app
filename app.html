@@ -358,7 +358,7 @@ input:disabled{opacity:.6}
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="2.2";
+const APPV="2.2.1";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED={"v": 3, "items": [], "days": {}};
 const NATIVE=typeof window.Android!=="undefined";
@@ -470,7 +470,7 @@ async function sync(manual){
     if(!j.changes)throw new Error("old");
     applyRemote(j.changes);
     P.syncSince=j.now;P.lastPush=startPush;P.lastDrive=Date.now();P.dirty=false;
-    recount();stampAll(false);saveNow();render();refresh();
+    recount();ensureLists();stampAll(false);saveNow();refreshLists();render();refresh();
     if(manual)toast("দুই ফোন মিলে গেছে ✓");
   }catch(e){
     const m=String(e.message);
