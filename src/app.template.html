@@ -169,6 +169,27 @@ nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft
 .vchip{font-size:17px;padding:6px 14px}
 details summary{cursor:pointer}
 input:disabled{opacity:.6}
+.addrow{display:flex;gap:6px;margin-top:6px}
+.addrow .inp{flex:1;min-width:0}.addrow .btn{flex:none;padding:8px 14px}
+.lrow{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+.lrow .lname{flex:1;min-width:0;font-size:18px;overflow-wrap:anywhere}.lrow .lname small{display:block;font-size:14px;color:var(--muted)}
+.lrow .inp{flex:1}
+.drag{touch-action:none;cursor:grab;font-size:24px;color:var(--muted);padding:4px 8px;user-select:none}
+.ib{width:40px;height:40px;flex:none;border-radius:9px;border:1.5px solid var(--line);background:var(--bg);font-size:18px;padding:0}
+.ib:disabled{opacity:.35}.ib.del{color:var(--danger)}
+.dragging{opacity:.75;box-shadow:0 6px 18px rgb(0 0 0/.25);position:relative;z-index:3}
+.tools{display:flex;gap:6px;align-items:center}
+.tools select{flex:1;min-width:0;font-size:15px;padding:5px 8px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--fg)}
+.tbtn{flex:none;font-size:15px;padding:5px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+.tbtn.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.item.picked{border-color:var(--accent);background:var(--accent-soft)}
+.chk{width:36px;height:36px;border-radius:9px;border:2px solid var(--line);display:grid;place-items:center;font-size:22px;color:var(--accent-fg);background:var(--surface)}
+.item.picked .chk{background:var(--accent);border-color:var(--accent)}
+.rcol{display:flex;align-items:center;gap:4px}
+.selbar{position:fixed;left:0;right:0;bottom:62px;z-index:9;background:var(--fg);color:var(--bg);display:flex;align-items:center;gap:8px;padding:8px 12px}
+.selbar span{flex:1;font-size:16px}.selbar button{border:0;border-radius:8px;padding:7px 12px;font-size:15px;font-weight:600;background:var(--surface);color:var(--fg)}
+.selbar #selAct{background:var(--accent);color:var(--accent-fg)}
+.selbar:not([hidden]) ~ .toast{bottom:128px}.selbar button:disabled{opacity:.5}
 [hidden]{display:none!important}
 </style></head><body>
 
@@ -179,6 +200,7 @@ input:disabled{opacity:.6}
     <div class="chips" id="chips"></div>
     <div class="noterow" id="noteRow"><div class="note" id="note"></div>
       <div class="vt" role="group" aria-label="দেখার ধরন"><button type="button" id="vt-list" aria-pressed="true">☰ তালিকা</button><button type="button" id="vt-grid" aria-pressed="false">▦ ছবি</button></div></div>
+    <div class="tools" id="toolsRow"><select id="sortSel" aria-label="কীভাবে সাজাবেন"></select><button type="button" class="tbtn" id="reorderBtn">↕ সাজান</button><button type="button" class="tbtn" id="selBtn">☑ বাছাই</button></div>
   </header>
 
   <main>
@@ -238,6 +260,19 @@ input:disabled{opacity:.6}
   <button type="button" data-v="sum">হিসাব</button>
   <button type="button" data-v="more">আরও</button>
 </nav>
+
+<div class="selbar" id="selBar" hidden><span id="selCount"></span><button type="button" id="selAll">সব</button><button type="button" id="selAct">কী করবেন</button><button type="button" id="selCancel">✕</button></div>
+<div class="sheet-bg" id="bulkBg" hidden>
+  <div class="panel">
+    <h2 id="bulkTitle"></h2>
+    <div class="f">ধরন বদলান<div class="addrow" style="margin:0"><select id="bk-cat" class="inp"></select><button type="button" class="btn primary" id="bk-catgo">বদলান</button></div></div>
+    <div class="f">কোথা থেকে কেনা বদলান<div class="addrow" style="margin:0"><select id="bk-src" class="inp"></select><button type="button" class="btn primary" id="bk-srcgo">বদলান</button></div></div>
+    <div class="f">বিক্রির দাম বদলান<div class="addrow" style="margin:0"><input id="bk-pv" class="inp" inputmode="decimal" placeholder="যেমন ১০"><select id="bk-pu" class="inp" style="flex:none;width:auto"><option value="tk">টাকা</option><option value="pc">%</option></select></div>
+      <div class="btns" style="margin-top:6px"><button type="button" class="btn" id="bk-up">+ বাড়ান</button><button type="button" class="btn" id="bk-dn">− কমান</button></div></div>
+    <button type="button" class="btn del" id="bk-del" style="width:100%"></button>
+    <button type="button" class="btn" id="bk-close">বন্ধ করুন</button>
+  </div>
+</div>
 
 <!-- PIN -->
 <div class="sheet-bg" id="pinBg" hidden>
@@ -323,11 +358,13 @@ input:disabled{opacity:.6}
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="2.1.2";
+const APPV="2.2";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED=__SEED__;
 const NATIVE=typeof window.Android!=="undefined";
 const CATS=["কাপড়","প্লাস্টিক","খেলনা","মেয়েদের জিনিস","মুদি","অন্যান্য"];
+const COSTL_DEF=["লেবার","কুরিয়ার","মার্কেট চার্জ","নৌকা ঘাট","টোল","রিকশা/ভ্যান","খাওয়া-দাওয়া","অন্য খরচ"];
+const EXPL_DEF=["বিদ্যুৎ বিল","চা-নাস্তা","দোকান ভাড়া","মেরামত","পরিবহন","মোবাইল/নেট","অন্য খরচ"];
 const PLACES=["চকবাজার","বাবুরহাট","ইসলামপুর","গুলিস্তান","বঙ্গবাজার","নরসিংদী বাজার","স্থানীয় বাজার"];
 const OTHER="__other__";
 const $=id=>document.getElementById(id);
@@ -343,11 +380,11 @@ const roundUp5=n=>Math.ceil(n/5)*5;
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
 /* ---------- storage: one JSON on the phone ---------- */
-const BLANK=()=>({v:0,dayAdj:[],tomb:{},trips:[],items:[],days:{},sales:[],customers:[],loans:[],expenses:[],cash:{},services:[],suppliers:[],shop:[],lastBackup:0,prefs:{view:"list",driveUrl:"",driveKey:"",lastDrive:0,lastDriveTry:0,dirty:false,pin:"",rates:{}}});
+const BLANK=()=>({v:0,lists:[],dayAdj:[],tomb:{},trips:[],items:[],days:{},sales:[],customers:[],loans:[],expenses:[],cash:{},services:[],suppliers:[],shop:[],lastBackup:0,prefs:{view:"list",driveUrl:"",driveKey:"",lastDrive:0,lastDriveTry:0,dirty:false,pin:"",rates:{}}});
 let S=BLANK();
 function normalize(d){
   const s=Object.assign(BLANK(),d);s.prefs=Object.assign(BLANK().prefs,d.prefs||{});
-  ["sales","customers","loans","expenses","services","suppliers","shop","trips","dayAdj"].forEach(k=>{if(!Array.isArray(s[k]))s[k]=[]});if(!s.cash||typeof s.cash!=="object")s.cash={};if(!s.tomb||typeof s.tomb!=="object")s.tomb={};
+  ["sales","customers","loans","expenses","services","suppliers","shop","trips","dayAdj","lists"].forEach(k=>{if(!Array.isArray(s[k]))s[k]=[]});if(!s.cash||typeof s.cash!=="object")s.cash={};if(!s.tomb||typeof s.tomb!=="object")s.tomb={};
   s.items.forEach(it=>{if(it.rev==null)it.rev=(it.sold||0)*(it.sell||0)});
   return migrate4(s);
 }
@@ -368,7 +405,7 @@ const unit=it=>it.qty>0&&it.total>0?(it.total+(it.fare||0)+extraSum(it))/it.qty:
 const left=it=>Math.max(0,(it.qty||0)-(it.sold||0));
 
 /* ---------- shared merge rules (the Drive script uses the same rules) ---------- */
-const SYNC_COLS=["items","sales","customers","loans","expenses","services","suppliers","shop","trips","dayAdj"];
+const SYNC_COLS=["items","sales","customers","loans","expenses","services","suppliers","shop","trips","dayAdj","lists"];
 const SYNC_MAPS=["cash"];
 function mergeRec(a,b){
   if(!a)return b;if(!b)return a;
@@ -456,11 +493,147 @@ function autoSync(){const P=S.prefs;if(!P.driveUrl)return;const now=Date.now();i
 window.addEventListener("online",()=>setTimeout(autoSync,3000));
 setInterval(()=>{if(!document.hidden&&S.prefs.driveUrl&&Date.now()-(S.prefs.lastDriveTry||0)>3*60e3)sync(false)},60e3);
 
+/* ---------- নিজের মতো সাজানো dropdown তালিকা (synced) ---------- */
+const NEWV="__new__";
+const LIST_DEF={cats:{t:"জিনিসের ধরন",d:CATS},places:{t:"কেনার জায়গা",d:PLACES},costs:{t:"কেনার খরচের ধরন",d:COSTL_DEF},exps:{t:"দোকানের খরচের ধরন",d:EXPL_DEF}};
+function listRec(k){let r=S.lists.find(x=>x.id==="list-"+k);if(!r){r={id:"list-"+k,key:k,vals:[...LIST_DEF[k].d]};S.lists.push(r)}return r}
+const L=k=>listRec(k).vals;
+function ensureLists(){
+  const add=(k,v)=>{v=(v||"").trim();if(v&&!L(k).includes(v))listRec(k).vals.push(v)};
+  S.items.forEach(i=>{add("cats",i.cat);add("places",i.src);(i.extra||[]).concat(i.ownExtra||[]).forEach(c=>add("costs",c.l))});
+  S.trips.forEach(t=>{add("places",t.src);(t.extra||[]).forEach(c=>add("costs",c.l))});
+  S.shop.forEach(x=>add("places",x.src));S.suppliers.forEach(x=>add("places",x.src));S.expenses.forEach(e=>add("exps",e.l));
+}
+function addToList(k,v){v=(v||"").trim();if(!v)return;const r=listRec(k);if(!r.vals.includes(v)){r.vals.push(v);save()}refreshLists()}
+function optsHtml(k,cur,blank){let vals=L(k);if(cur&&cur!==NEWV&&!vals.includes(cur))vals=[...vals,cur];
+  return (blank?`<option value="">— বেছে নিন —</option>`:"")+vals.map(v=>`<option${v===cur?" selected":""}>${esc(v)}</option>`).join("")+`<option value="${NEWV}">+ নতুন যোগ করুন…</option>`}
+function fillSel(sel,k,cur,blank){sel.dataset.list=k;if(blank)sel.dataset.blank="1";sel.innerHTML=optsHtml(k,cur==null?sel.value:cur,blank||sel.dataset.blank==="1");if(cur!=null&&cur!=="")sel.value=cur}
+function refreshLists(keep){document.querySelectorAll("select[data-list]").forEach(s=>{const k=s.dataset.list,cur=keep&&keep.sel===s?keep.v:s.value;s.innerHTML=optsHtml(k,cur,s.dataset.blank==="1");if(cur&&cur!==NEWV)s.value=cur});renderChips()}
+function usedCount(k,v){
+  if(k==="cats")return S.items.filter(i=>i.cat===v).length;
+  if(k==="places")return S.items.filter(i=>i.src===v).length+S.trips.filter(t=>t.src===v).length;
+  if(k==="costs")return S.items.filter(i=>(i.extra||[]).concat(i.ownExtra||[]).some(c=>c.l===v)).length+S.trips.filter(t=>(t.extra||[]).some(c=>c.l===v)).length;
+  return S.expenses.filter(e=>e.l===v).length;
+}
+function renameVal(k,o,n){
+  const r=listRec(k);r.vals=[...new Set(r.vals.map(x=>x===o?n:x))];
+  const f=a=>(a||[]).forEach(c=>{if(c.l===o)c.l=n});
+  if(k==="cats")S.items.forEach(i=>{if(i.cat===o)i.cat=n});
+  if(k==="places"){S.items.forEach(i=>{if(i.src===o)i.src=n});S.trips.forEach(t=>{if(t.src===o)t.src=n});S.shop.forEach(x=>{if(x.src===o)x.src=n});S.suppliers.forEach(x=>{if(x.src===o)x.src=n})}
+  if(k==="costs"){S.items.forEach(i=>{f(i.extra);f(i.ownExtra)});S.trips.forEach(t=>f(t.extra))}
+  if(k==="exps")S.expenses.forEach(e=>{if(e.l===o)e.l=n});
+  if(cat===o)cat=n;
+  save();refreshLists();render();
+}
+/* "+ নতুন যোগ করুন…" from any dropdown */
+document.addEventListener("focusin",e=>{const s=e.target;if(s.matches&&s.matches("select[data-list]")&&s.value!==NEWV)s.dataset.prev=s.value});
+document.addEventListener("pointerdown",e=>{const s=e.target.closest&&e.target.closest("select[data-list]");if(s&&s.value!==NEWV)s.dataset.prev=s.value},true);
+document.addEventListener("change",e=>{const s=e.target;if(!s.matches||!s.matches("select[data-list]")||s.value!==NEWV)return;
+  const host=s.parentElement;let row=host.querySelector(":scope > .addrow");if(row)row.remove();
+  row=document.createElement("div");row.className="addrow";
+  row.innerHTML=`<input class="inp" placeholder="নতুন ${esc(LIST_DEF[s.dataset.list].t)}"><button type="button" class="btn primary">যোগ</button><button type="button" class="btn">✕</button>`;
+  s.insertAdjacentElement("afterend",row);const inp=row.querySelector("input");inp.focus();
+  const cancel=()=>{row.remove();s.value=s.dataset.prev||(s.dataset.blank==="1"?"":L(s.dataset.list)[0]||"");s.dispatchEvent(new Event("input",{bubbles:true}))};
+  const ok=()=>{const v=inp.value.trim();if(!v){inp.focus();return}row.remove();addToList(s.dataset.list,v);refreshLists({sel:s,v});s.value=v;
+    s.dispatchEvent(new Event("input",{bubbles:true}));s.dispatchEvent(new Event("change",{bubbles:true}));toast(`"${v}" তালিকায় যোগ হলো`)};
+  row.children[1].onclick=ok;row.children[2].onclick=cancel;inp.onkeydown=ev=>{if(ev.key==="Enter"){ev.preventDefault();ok()}};
+});
+function renderChips(){const list=["সব","কম আছে",...L("cats")];if(!list.includes(cat))cat="সব";
+  $("chips").innerHTML=list.map(c=>`<button type="button" class="chip" aria-pressed="${c===cat}">${esc(c)}</button>`).join("")}
+
+/* ---------- drag to reorder (works with finger and mouse) ---------- */
+function makeSortable(box,sel,done){
+  box.querySelectorAll(".drag").forEach(h=>{h.onpointerdown=e=>{
+    const row=h.closest(sel);if(!row)return;e.preventDefault();row.classList.add("dragging");
+    const move=ev=>{const y=ev.clientY,rows=[...box.querySelectorAll(sel)].filter(r=>r!==row);let before=null;
+      for(const r of rows){const b=r.getBoundingClientRect();if(y<b.top+b.height/2){before=r;break}}
+      if(before)box.insertBefore(row,before);else if(rows.length)rows[rows.length-1].after(row);
+      if(y<90)window.scrollBy(0,-14);else if(y>innerHeight-140)window.scrollBy(0,14)};
+    const up=()=>{document.removeEventListener("pointermove",move);document.removeEventListener("pointerup",up);document.removeEventListener("pointercancel",up);row.classList.remove("dragging");
+      done([...box.querySelectorAll(sel)].map(r=>r.dataset.id))};
+    document.addEventListener("pointermove",move);document.addEventListener("pointerup",up);document.addEventListener("pointercancel",up)}});
+}
+
+/* ---------- আরও → তালিকা সাজান ---------- */
+let listKey="cats",listEdit=null;
+function viewLists(box){
+  const vals=L(listKey);
+  box.innerHTML=`${moreHead("তালিকা সাজান")}
+  <p class="help">dropdown-এ যা যা দেখায় সেগুলো এখানে নিজের মতো করুন। নাম বদলালে আগের সব জিনিসেও বদলে যাবে। ⠿ ধরে টেনে বা ↑↓ দিয়ে আগে-পরে সাজান।</p>
+  <div class="chips">${Object.entries(LIST_DEF).map(([k,d])=>`<button type="button" class="chip" data-lk="${k}" aria-pressed="${k===listKey}">${d.t}</button>`).join("")}</div>
+  <div class="sec" id="lv-rows">${vals.map((v,i)=>{const n=usedCount(listKey,v);return listEdit===i?
+    `<div class="lrow" data-id="${i}"><input class="inp" id="lv-ren" value="${esc(v)}"><button type="button" class="btn primary" id="lv-rok">সেভ</button><button type="button" class="btn" id="lv-rno">✕</button></div>`:
+    `<div class="lrow" data-id="${i}"><span class="drag" aria-label="টেনে সাজান">⠿</span><span class="lname">${esc(v)}${n?`<small>${bn(n)}টায় আছে</small>`:""}</span>
+      <button type="button" class="ib" data-lup="${i}" ${i?"":"disabled"} aria-label="উপরে">↑</button><button type="button" class="ib" data-ldn="${i}" ${i<vals.length-1?"":"disabled"} aria-label="নিচে">↓</button>
+      <button type="button" class="ib" data-lren="${i}" aria-label="নাম বদলান">✏️</button><button type="button" class="ib del" data-ldel="${i}" aria-label="মুছুন">🗑</button></div>`}).join("")}</div>
+  <div class="addrow" style="margin-top:10px"><input class="inp" id="lv-new" placeholder="নতুন ${esc(LIST_DEF[listKey].t)}"><button type="button" class="btn primary" id="lv-add">যোগ</button></div>`;
+  const rec=listRec(listKey),redo=()=>{save();refreshLists();renderMore()};
+  box.querySelectorAll("[data-lk]").forEach(b=>b.onclick=()=>{listKey=b.dataset.lk;listEdit=null;renderMore()});
+  box.querySelectorAll("[data-lup]").forEach(b=>b.onclick=()=>{const i=+b.dataset.lup;[rec.vals[i-1],rec.vals[i]]=[rec.vals[i],rec.vals[i-1]];redo()});
+  box.querySelectorAll("[data-ldn]").forEach(b=>b.onclick=()=>{const i=+b.dataset.ldn;[rec.vals[i+1],rec.vals[i]]=[rec.vals[i],rec.vals[i+1]];redo()});
+  box.querySelectorAll("[data-lren]").forEach(b=>b.onclick=()=>{listEdit=+b.dataset.lren;renderMore();$("lv-ren").focus()});
+  box.querySelectorAll("[data-ldel]").forEach(b=>b.onclick=()=>armed(b,()=>{const v=rec.vals[+b.dataset.ldel],n=usedCount(listKey,v);rec.vals.splice(+b.dataset.ldel,1);redo();
+    toast(n?`"${v}" তালিকা থেকে সরানো হলো। আগের ${bn(n)}টা জিনিসে নামটা থেকে যাবে।`:`"${v}" মুছে ফেলা হলো`,null,null,4500)}));
+  if($("lv-rok")){const ok=()=>{const n=$("lv-ren").value.trim(),o=rec.vals[listEdit];listEdit=null;if(n&&n!==o){renameVal(listKey,o,n);toast(`"${o}" বদলে "${n}" হলো, আগের সব জিনিসেও`,null,null,4000)}renderMore()};
+    $("lv-rok").onclick=ok;$("lv-rno").onclick=()=>{listEdit=null;renderMore()};$("lv-ren").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();ok()}}}
+  const add=()=>{const v=$("lv-new").value.trim();if(!v)return;if(rec.vals.includes(v)){toast("এটা আগেই আছে");return}rec.vals.push(v);redo();setTimeout(()=>$("lv-new")&&$("lv-new").focus(),0)};
+  $("lv-add").onclick=add;$("lv-new").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();add()}};
+  makeSortable($("lv-rows"),".lrow",ids=>{const old=[...rec.vals];rec.vals=ids.map(i=>old[+i]);redo()});
+}
+
+/* ---------- জিনিস সাজানো, নিজের মতো ক্রম, একসাথে অনেকগুলো বাছাই ---------- */
+const SORTS=[["name","নাম অনুযায়ী"],["new","নতুন আগে"],["pasc","দাম: কম থেকে বেশি"],["pdesc","দাম: বেশি থেকে কম"],["stock","কম আছে আগে"],["best","বেশি বিক্রি আগে"],["custom","নিজের সাজানো ক্রমে"]];
+let reorderMode=false,selMode=false;const picked=new Set();
+function sortItems(list){
+  const by=S.prefs.sort||"name",nm=(a,b)=>a.name.localeCompare(b.name,"bn");
+  const f={name:nm,new:(a,b)=>(b.created||b.updated||0)-(a.created||a.updated||0),pasc:(a,b)=>a.sell-b.sell||nm(a,b),pdesc:(a,b)=>b.sell-a.sell||nm(a,b),
+    stock:(a,b)=>left(a)-left(b)||nm(a,b),best:(a,b)=>(b.sold||0)-(a.sold||0)||nm(a,b),custom:(a,b)=>(a.ord??1e9)-(b.ord??1e9)||nm(a,b)}[by]||nm;
+  return list.sort(f);
+}
+function setSort(v){S.prefs.sort=v;$("sortSel").value=v;saveNow();render()}
+function startReorder(){
+  if(S.prefs.sort!=="custom"){sortItems(S.items.slice()).forEach((it,i)=>it.ord=i*10);S.prefs.sort="custom";$("sortSel").value="custom"}
+  reorderMode=true;selMode=false;picked.clear();render();toast("⠿ ধরে টেনে বা ↑↓ দিয়ে সাজান, শেষে ✓ শেষ চাপুন",null,null,4000)}
+function applyOrder(ids){
+  const full=sortItems(S.items.slice()),pos=full.map((it,i)=>ids.includes(it.id)?i:-1).filter(i=>i>=0),moved=ids.map(id=>S.items.find(x=>x.id===id));
+  pos.forEach((p,k)=>full[p]=moved[k]);full.forEach((it,i)=>{if(it.ord!==i*10)it.ord=i*10});save();render()}
+function moveItem(id,d){const vis=[...$("list").querySelectorAll(".item")].map(r=>r.dataset.id),i=vis.indexOf(id),j=i+d;if(j<0||j>=vis.length)return;[vis[i],vis[j]]=[vis[j],vis[i]];applyOrder(vis)}
+function toolsUI(){
+  $("reorderBtn").hidden=selMode;$("reorderBtn").textContent=reorderMode?"✓ শেষ":"↕ সাজান";$("reorderBtn").classList.toggle("on",reorderMode);
+  $("selBtn").hidden=reorderMode;$("selBtn").classList.toggle("on",selMode);
+  $("selBar").hidden=!selMode;$("selCount").textContent=`${bn(picked.size)}টা বাছাই করা`;$("selAct").disabled=!picked.size;
+}
+function bulkSheet(){
+  const ids=[...picked],its=S.items.filter(i=>picked.has(i.id));
+  $("bulkTitle").textContent=`বাছাই করা ${bn(its.length)}টা জিনিস`;
+  fillSel($("bk-cat"),"cats",L("cats")[0]);fillSel($("bk-src"),"places",L("places")[0]);
+  $("bk-pv").value="";$("bk-del").textContent=`${bn(its.length)}টা মুছে ফেলুন`;$("bk-del").dataset.arm="";$("bulkBg").hidden=false;
+}
+function bulkDone(msg){$("bulkBg").hidden=true;selMode=false;picked.clear();save();render();toast(msg,null,null,3500)}
+
+$("sortSel").innerHTML=SORTS.map(([v,t])=>`<option value="${v}">${t}</option>`).join("");
+$("sortSel").onchange=()=>{reorderMode=false;setSort($("sortSel").value)};
+$("reorderBtn").onclick=()=>{if(reorderMode){reorderMode=false;render();toast("ক্রম সেভ হলো")}else startReorder()};
+$("selBtn").onclick=()=>{if(selMode){selMode=false;picked.clear();render();return}withPin(()=>{selMode=true;reorderMode=false;picked.clear();render();toast("যেগুলো চান সেগুলোতে চাপ দিন")})};
+$("selCancel").onclick=()=>{selMode=false;picked.clear();render()};
+$("selAll").onclick=()=>{const vis=[...$("list").querySelectorAll(".item")].map(r=>r.dataset.id),all=vis.every(id=>picked.has(id));vis.forEach(id=>all?picked.delete(id):picked.add(id));render()};
+$("selAct").onclick=()=>{if(picked.size)bulkSheet()};
+$("bk-close").onclick=()=>$("bulkBg").hidden=true;$("bulkBg").onclick=e=>{if(e.target===$("bulkBg"))$("bulkBg").hidden=true};
+const pickedItems=()=>S.items.filter(i=>picked.has(i.id));
+$("bk-catgo").onclick=()=>{const v=$("bk-cat").value;if(!v||v===NEWV)return;pickedItems().forEach(i=>i.cat=v);bulkDone(`${bn(picked.size)}টার ধরন "${v}" হলো`)};
+$("bk-srcgo").onclick=()=>{const v=$("bk-src").value;if(!v||v===NEWV)return;pickedItems().forEach(i=>i.src=v);bulkDone(`${bn(picked.size)}টার জায়গা "${v}" হলো`)};
+const bkPrice=sign=>{const v=num($("bk-pv").value);if(!(v>0)){toast("কত টাকা বা কত % লিখুন");return}const pc=$("bk-pu").value==="pc";
+  pickedItems().forEach(i=>{const n=pc?i.sell*(1+sign*v/100):i.sell+sign*v;i.sell=Math.max(1,pc?roundUp5(n):Math.round(n));delete i.autoSell});
+  bulkDone(`${bn(picked.size)}টার দাম ${sign>0?"বাড়ানো":"কমানো"} হলো`)};
+$("bk-up").onclick=()=>bkPrice(1);$("bk-dn").onclick=()=>bkPrice(-1);
+$("bk-del").onclick=()=>armed($("bk-del"),()=>{const its=pickedItems(),trips=new Set();its.forEach(i=>{if(i.trip)trips.add(i.trip);kill("items",i)});
+  trips.forEach(id=>{const tr=S.trips.find(t=>t.id===id);if(tr)redistribute(tr)});bulkDone(`${bn(its.length)}টা জিনিস মুছে ফেলা হলো`)});
+
 /* ---------- ui basics ---------- */
 let cat="সব",view="list";
-$("chips").innerHTML=["সব","কম আছে",...CATS].map(c=>`<button type="button" class="chip" aria-pressed="${c==="সব"}">${c}</button>`).join("");
+
 $("chips").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;cat=b.textContent;[...$("chips").children].forEach(x=>x.setAttribute("aria-pressed",x===b));render()};
-["b-cat","o-cat","e-cat"].forEach(id=>$(id).innerHTML=CATS.map(c=>`<option>${c}</option>`).join(""));
+
 $("q").oninput=render;
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 function show(v){
@@ -468,30 +641,28 @@ function show(v){
   if(v==="more"&&view!=="more")moreView="home";
   view=v;["list","add","sum","more"].forEach(x=>$("v-"+x).hidden=x!==v);
   document.querySelectorAll("nav button").forEach(b=>{if(b.dataset.v===v)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")});
-  $("searchBox").hidden=$("chips").hidden=$("noteRow").hidden=v!=="list";
+  $("searchBox").hidden=$("chips").hidden=$("noteRow").hidden=$("toolsRow").hidden=v!=="list";
+  if(v!=="list"&&(selMode||reorderMode)){selMode=false;reorderMode=false;picked.clear();toolsUI()}
   if(v==="sum")renderSum();if(v==="more")renderMore();if(v==="add"){fillPlaces();if(!$("batch").hidden)renderBatch()}window.scrollTo(0,0)}
 function setLayout(g,quiet){S.prefs.view=g?"grid":"list";$("vt-grid").setAttribute("aria-pressed",g);$("vt-list").setAttribute("aria-pressed",!g);$("list").classList.toggle("grid",g);if(!quiet){saveNow();render()}}
 $("vt-list").onclick=()=>setLayout(false);$("vt-grid").onclick=()=>setLayout(true);
 let toastT;
 function toast(msg,btnText,fn,ms){$("toastMsg").textContent=msg;const b=$("toastBtn");b.hidden=!btnText;b.textContent=btnText||"";b.onclick=()=>{$("toast").hidden=true;fn&&fn()};
   $("toast").hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>$("toast").hidden=true,ms||(btnText?5000:2500))}
-window.onBack=()=>{if(!$("pinBg").hidden){$("pinBg").hidden=true;return true}if(!$("sellBg").hidden){$("sellBg").hidden=true;return true}if(view==="more"&&moreView!=="home"){moreView=moreView.startsWith("baki:")?"baki":"home";renderMore();return true}if(!$("editBg").hidden){closeEdit();return true}if(view!=="list"){show("list");return true}return false};
+window.onBack=()=>{if(!$("bulkBg").hidden){$("bulkBg").hidden=true;return true}if(selMode||reorderMode){selMode=false;reorderMode=false;picked.clear();render();return true}if(!$("pinBg").hidden){$("pinBg").hidden=true;return true}if(!$("sellBg").hidden){$("sellBg").hidden=true;return true}if(view==="more"&&moreView!=="home"){moreView=moreView.startsWith("baki:")?"baki":"home";renderMore();return true}if(!$("editBg").hidden){closeEdit();return true}if(view!=="list"){show("list");return true}return false};
 
 /* ---------- places dropdown ---------- */
-function places(){const used=[...new Set(S.items.map(i=>i.src).filter(Boolean))];return [...used,...PLACES.filter(p=>!used.includes(p))]}
-function fillPlaces(){["b","o","e"].forEach(p=>{const sel=$(p+"-srcsel"),cur=sel.value;sel.innerHTML=`<option value="">— বেছে নিন —</option>`+places().map(x=>`<option>${esc(x)}</option>`).join("")+`<option value="${OTHER}">অন্য জায়গা…</option>`;
-  if(cur&&[...sel.options].some(o=>o.value===cur))sel.value=cur;$(p+"-src").hidden=sel.value!==OTHER})}
-["b","o","e"].forEach(p=>$(p+"-srcsel").onchange=()=>{const o=$(p+"-srcsel").value===OTHER;$(p+"-src").hidden=!o;if(o)$(p+"-src").focus()});
-const getSrc=p=>$(p+"-srcsel").value===OTHER?$(p+"-src").value.trim():$(p+"-srcsel").value;
-function setSrc(p,v){fillPlaces();const sel=$(p+"-srcsel");if(!v){sel.value="";$(p+"-src").hidden=true;return}
-  if([...sel.options].some(o=>o.value===v))sel.value=v;else{sel.value=OTHER;$(p+"-src").value=v}$(p+"-src").hidden=sel.value!==OTHER}
+const places=()=>L("places");
+function fillPlaces(){["b","o","e"].forEach(p=>{const sel=$(p+"-srcsel");fillSel(sel,"places",sel.value===NEWV?"":sel.value,true);$(p+"-src").hidden=true})}
+const getSrc=p=>{const v=$(p+"-srcsel").value;return v===NEWV?"":v};
+function setSrc(p,v){fillSel($(p+"-srcsel"),"places",v||"",true);$(p+"-src").hidden=true}
 
 /* ---------- list ---------- */
 function phHtml(it){return it.thumb?`<img src="${esc(it.thumb)}" alt="" loading="lazy">`:esc((it.name||"?").trim().charAt(0))}
 function render(){
   const s=toEn($("q").value.trim().toLowerCase());
-  const list=S.items.filter(it=>(cat==="সব"||(cat==="কম আছে"?left(it)<=2:it.cat===cat))&&(!s||toEn(it.name.toLowerCase()).includes(s)))
-    .sort((a,b)=>a.name.localeCompare(b.name,"bn"));
+  const list=sortItems(S.items.filter(it=>(cat==="সব"||(cat==="কম আছে"?left(it)<=2:it.cat===cat))&&(!s||toEn(it.name.toLowerCase()).includes(s))));
+  $("list").classList.toggle("grid",S.prefs.view==="grid"&&!reorderMode);toolsUI();
   $("todayLine").innerHTML=`আজ বিক্রি: <b>${bn(today().n)}টা</b>`;lockUI();
   $("note").textContent=S.items.length?`${bn(S.items.length)} রকম জিনিস`:"";
   if(!S.items.length){$("list").innerHTML=`<div class="empty">এখনো কোনো জিনিস নেই।<br>নিচে <b>মাল যোগ</b> চাপুন। একসাথে অনেকগুলো লিখে দিতে পারবেন।</div>`;return}
@@ -501,9 +672,15 @@ function render(){
       <button type="button" class="ph" data-edit>${phHtml(it)}</button>
       <button type="button" class="mid" data-edit><div class="nm">${esc(it.name)}</div>
         <div class="sub"><span class="stock ${l===0?"out":l<=2?"low":""}">${l===0?"শেষ":"আছে "+bn(l)+"টা"}</span>${it.cat&&S.prefs.view!=="grid"?`<span>${esc(it.cat)}</span>`:""}</div>${(it.vars||[]).length?`<div class="sub" style="font-size:15px">${it.vars.map(v=>`${esc(v.n)}: ${bn(Math.max(0,v.qty-v.sold))}`).join(" · ")}</div>`:""}</button>
-      <div class="right"><div class="price">৳${bn(it.sell)}</div><button type="button" class="sell" data-sell ${l===0?"disabled":""}>বিক্রি</button></div></div>`}).join("");
+      ${reorderMode?`<div class="rcol"><button type="button" class="ib" data-mv="-1" aria-label="উপরে">↑</button><button type="button" class="ib" data-mv="1" aria-label="নিচে">↓</button><span class="drag" aria-label="টেনে সাজান">⠿</span></div>`
+       :selMode?`<div class="rcol"><div class="price" style="font-size:22px">৳${bn(it.sell)}</div><span class="chk">${picked.has(it.id)?"✓":""}</span></div>`
+       :`<div class="right"><div class="price">৳${bn(it.sell)}</div><button type="button" class="sell" data-sell ${l===0?"disabled":""}>বিক্রি</button></div>`}</div>`}).join("");
+  $("list").querySelectorAll(".item").forEach(r=>{if(picked.has(r.dataset.id))r.classList.add("picked")});
+  if(reorderMode)makeSortable($("list"),".item",applyOrder);
 }
 $("list").onclick=e=>{const row=e.target.closest(".item");if(!row)return;const it=S.items.find(i=>i.id===row.dataset.id);if(!it)return;
+  if(selMode){picked.has(it.id)?picked.delete(it.id):picked.add(it.id);row.classList.toggle("picked");row.querySelector(".chk").textContent=picked.has(it.id)?"✓":"";toolsUI();return}
+  if(reorderMode){const b=e.target.closest("[data-mv]");if(b)moveItem(it.id,+b.dataset.mv);return}
   if(e.target.closest("[data-sell]"))openSell(it);else if(e.target.closest("[data-edit]"))openEdit(it)};
 
 /* ---------- sell with confirm ---------- */
@@ -559,18 +736,18 @@ $("fileImg").onchange=async()=>{const f=$("fileImg").files[0];$("fileImg").value
     window.onPhoto(photoSlot,c.toDataURL("image/jpeg",.7))}catch(e){window.onPhoto(photoSlot,null)}};
 
 /* ---------- extra costs (labour, courier, market charge, ghat…) ---------- */
-const COSTL=["লেবার","কুরিয়ার","মার্কেট চার্জ","নৌকা ঘাট","টোল","রিকশা/ভ্যান","খাওয়া-দাওয়া","অন্য খরচ"];
+
 const costs={o:[],e:[],b:[],t:[]};
 const costSum=p=>costs[p].reduce((a,c)=>a+(+c.a||0),0);
 function drawCosts(p){
-  $(p+"-costs").innerHTML=costs[p].map((c,i)=>`<div class="costrow"><select data-cp="${p}" data-ci="${i}" data-k="l" aria-label="খরচের ধরন">${COSTL.map(x=>`<option${x===c.l?" selected":""}>${x}</option>`).join("")}${COSTL.includes(c.l)?"":`<option selected>${esc(c.l)}</option>`}</select><input data-cp="${p}" data-ci="${i}" data-k="a" inputmode="decimal" placeholder="৳" aria-label="টাকা" value="${c.a?bnRaw(c.a):""}"><button type="button" class="x" data-cdel="${i}" data-cp="${p}" aria-label="মুছুন">✕</button></div>`).join("")+
+  $(p+"-costs").innerHTML=costs[p].map((c,i)=>`<div class="costrow"><select data-cp="${p}" data-ci="${i}" data-k="l" data-list="costs" aria-label="খরচের ধরন">${optsHtml("costs",c.l)}</select><input data-cp="${p}" data-ci="${i}" data-k="a" inputmode="decimal" placeholder="৳" aria-label="টাকা" value="${c.a?bnRaw(c.a):""}"><button type="button" class="x" data-cdel="${i}" data-cp="${p}" aria-label="মুছুন">✕</button></div>`).join("")+
     `<button type="button" class="link addcost" data-cadd="${p}">+ অন্য খরচ যোগ করুন (লেবার, কুরিয়ার, ঘাট…)</button>`;
 }
 const recalc=p=>p==="o"?oCalc():p==="e"?eCalc():p==="t"?tripChanged():parseBulk();
 document.addEventListener("input",e=>{const t=e.target;if(!t.dataset||!t.dataset.cp||t.dataset.ci==null)return;const c=costs[t.dataset.cp][+t.dataset.ci];if(!c)return;
-  if(t.dataset.k==="a")c.a=num(t.value);else c.l=t.value;recalc(t.dataset.cp)});
-document.addEventListener("change",e=>{const t=e.target;if(t.dataset&&t.dataset.cp&&t.dataset.k==="l"){const c=costs[t.dataset.cp][+t.dataset.ci];if(c)c.l=t.value}});
-document.addEventListener("click",e=>{const a=e.target.closest("[data-cadd]");if(a){const p=a.dataset.cadd;costs[p].push({l:COSTL[0],a:0});drawCosts(p);const ins=$(p+"-costs").querySelectorAll("input");ins[ins.length-1].focus();return}
+  if(t.dataset.k==="a")c.a=num(t.value);else if(t.value!==NEWV)c.l=t.value;recalc(t.dataset.cp)});
+document.addEventListener("change",e=>{const t=e.target;if(t.dataset&&t.dataset.cp&&t.dataset.k==="l"&&t.value!==NEWV){const c=costs[t.dataset.cp][+t.dataset.ci];if(c)c.l=t.value}});
+document.addEventListener("click",e=>{const a=e.target.closest("[data-cadd]");if(a){const p=a.dataset.cadd;costs[p].push({l:L("costs")[0],a:0});drawCosts(p);const ins=$(p+"-costs").querySelectorAll("input");ins[ins.length-1].focus();return}
   const d=e.target.closest("[data-cdel]");if(d){const p=d.dataset.cp;costs[p].splice(+d.dataset.cdel,1);drawCosts(p);recalc(p)}});
 const cleanCosts=p=>costs[p].filter(c=>c.a>0).map(c=>({l:c.l,a:c.a}));
 ["o","e","b"].forEach(drawCosts);
@@ -589,24 +766,24 @@ function renderBatch(){
   if(!tr){
     const recent=[...S.trips].sort((a,b)=>b.t-a.t).slice(0,8);
     box.innerHTML=`<p class="help">এক বাজার থেকে একবারে যা যা কিনলেন (খেলনা, প্লাস্টিক, মেয়েদের জিনিস…) সব একটা ব্যাচে রাখুন। ভাড়া আর অন্য খরচ <b>একবার</b> লিখলেই প্রতিটা জিনিসে তার দাম অনুযায়ী ভাগ হয়ে যাবে। পরে খরচ বদলালেও আবার ভাগ হবে।</p>
-      <div class="f">কোন বাজার থেকে<select id="tr-src">${places().map(x=>`<option>${esc(x)}</option>`).join("")}<option value="${OTHER}">অন্য জায়গা…</option></select><input id="tr-src2" class="inp" placeholder="জায়গার নাম" hidden></div>
+      <label class="f">কোন বাজার থেকে<select id="tr-src" data-list="places">${optsHtml("places",L("places")[0])}</select></label>
       <button type="button" class="btn primary" id="tr-new">নতুন ব্যাচ শুরু করুন</button>
       ${recent.length?`<h3 style="margin:10px 0 0;font-size:18px">আগের ব্যাচ</h3>`+recent.map(t=>{const its=tripItems(t);return `<div class="mini"><span>${esc(t.src||"")} · ${bnDate(dayKey(new Date(t.t)))}<br><small style="color:var(--muted)">${bn(its.length)}টা জিনিস · মাল ৳${bn(its.reduce((a,i)=>a+(i.total||0),0))} · খরচ ৳${bn(tripCost(t))}</small></span><button type="button" class="undo" style="color:var(--accent)" data-tropen="${t.id}">খুলুন</button></div>`}).join(""):""}`;
-    $("tr-src").onchange=()=>{const o=$("tr-src").value===OTHER;$("tr-src2").hidden=!o;if(o)$("tr-src2").focus()};
-    $("tr-new").onclick=()=>{const src=$("tr-src").value===OTHER?$("tr-src2").value.trim():$("tr-src").value;if(!src){toast("বাজারের নাম দিন");return}
+    $("tr-new").onclick=()=>{const src=$("tr-src").value;if(!src||src===NEWV){toast("বাজারের নাম দিন");return}
       const t={id:newId(),t:Date.now(),src,fare:0,extra:[],open:true};S.trips.push(t);S.prefs.openTrip=t.id;save();renderBatch()};
     box.querySelectorAll("[data-tropen]").forEach(b=>b.onclick=()=>{const t=S.trips.find(x=>x.id===b.dataset.tropen);t.open=true;S.prefs.openTrip=t.id;save();renderBatch();window.scrollTo(0,0)});
     return;
   }
   costs.t=(tr.extra||[]).map(c=>({l:c.l,a:c.a}));
   box.innerHTML=`<div class="okbox"><b>${esc(tr.src)}</b> · ${bnDate(dayKey(new Date(tr.t)))} এর ব্যাচ চলছে</div>
+    <label class="f">বাজার বদলাতে চাইলে<select id="tr-srced" data-list="places">${optsHtml("places",tr.src)}</select></label>
     <h3 style="margin:4px 0 0;font-size:18px">১. পুরো ব্যাচের খরচ (একবারই লিখুন)</h3>
     <label class="f">গাড়ি ভাড়া/পার্সেল (৳)<input id="tr-fare" inputmode="decimal" value="${tr.fare?bnRaw(tr.fare):""}" placeholder="যেমন ৩০০"></label>
     <div class="costs" id="t-costs"></div>
     <h3 style="margin:8px 0 0;font-size:18px">২. একটা একটা জিনিস যোগ করুন</h3>
     <div class="photo-pick"><button type="button" class="ph" id="t-ph" data-photo="t">📷</button><p class="help">ছবি দিলে চিনতে সুবিধা, না দিলেও চলবে।</p></div>
     <label class="f">নাম<input id="t-name" placeholder="যেমন: খেলনা গাড়ি"></label>
-    <div class="two"><label class="f">ধরন<select id="t-cat">${CATS.map(c=>`<option${c===(S.prefs.lastTripCat||"")?" selected":""}>${c}</option>`).join("")}</select></label><label class="f">কয়টা<input id="t-qty" inputmode="numeric" value="১২"></label></div>
+    <div class="two"><label class="f">ধরন<select id="t-cat" data-list="cats">${optsHtml("cats",S.prefs.lastTripCat&&L("cats").includes(S.prefs.lastTripCat)?S.prefs.lastTripCat:L("cats")[0])}</select></label><label class="f">কয়টা<input id="t-qty" inputmode="numeric" value="১২"></label></div>
     <div class="two"><label class="f">মোট কেনা দাম (৳)<input id="t-total" inputmode="decimal" placeholder="৬০০"></label><label class="f">বিক্রির দাম (৳)<input id="t-sell" inputmode="decimal" placeholder="খালি রাখলে ৩০% লাভ"></label></div>
     <div class="err" id="t-err"></div>
     <button type="button" class="btn primary" id="t-add">ব্যাচে যোগ করুন</button>
@@ -615,8 +792,9 @@ function renderBatch(){
     <div class="btns" style="margin-top:6px"><button type="button" class="btn primary" id="tr-close">ব্যাচ শেষ করুন</button></div>`;
   drawCosts("t");drawTripList();
   $("tr-fare").oninput=()=>{tr.fare=num($("tr-fare").value);tripChanged()};
+  $("tr-srced").onchange=()=>{const v=$("tr-srced").value;if(!v||v===NEWV||v===tr.src)return;tr.src=v;tripItems(tr).forEach(i=>i.src=v);save();render();renderBatch();toast(`বাজার বদলে "${v}" হলো, এই ব্যাচের সব জিনিসেও`)};
   $("t-add").onclick=()=>{
-    $("t-err").textContent="";const name=$("t-name").value.trim(),qty=num($("t-qty").value),total=num($("t-total").value);let sell=num($("t-sell").value);
+    $("t-err").textContent="";if($("t-cat").value===NEWV){$("t-err").textContent="ধরন বেছে নিন।";return}const name=$("t-name").value.trim(),qty=num($("t-qty").value),total=num($("t-total").value);let sell=num($("t-sell").value);
     if(!name||!(qty>0)||!(total>0)){$("t-err").textContent="নাম, কয়টা আর মোট দাম লিখুন।";return}
     const it={id:newId(),created:Date.now(),trip:tr.id,name,cat:$("t-cat").value,src:tr.src,qty,sold:0,rev:0,total,fare:0,extra:[],sell:sell||0,updated:Date.now()};
     if(slots.t)it.thumb=slots.t;
@@ -655,6 +833,7 @@ function eCalc(){$("e-calc").innerHTML=calcHtml(num($("e-qty").value),num($("e-t
 document.addEventListener("click",e=>{const b=e.target.closest("[data-set]");if(!b)return;$(b.dataset.set).value=bnRaw(+b.dataset.v);b.dataset.set[0]==="o"?oCalc():eCalc()});
 $("one").onsubmit=e=>{
   e.preventDefault();$("o-err").textContent="";
+  if($("o-cat").value===NEWV){$("o-err").textContent="ধরন বেছে নিন।";return}
   const d={id:newId(),created:Date.now(),name:$("o-name").value.trim(),cat:$("o-cat").value,src:getSrc("o"),qty:num($("o-qty").value),sold:0,rev:0,total:num($("o-total").value),fare:num($("o-fare").value),sell:num($("o-sell").value),updated:Date.now()};
   if(!d.name){$("o-err").textContent="নাম লিখুন।";return}
   d.extra=cleanCosts("o");const vs=cleanVars("o");if(vs.length){d.vars=vs;d.qty=vs.reduce((a,v)=>a+v.qty,0)}
@@ -688,6 +867,7 @@ function parseBulk(){
 ["b-text","b-fare"].forEach(id=>$(id).oninput=parseBulk);
 $("b-save").onclick=()=>{
   const ok=parsed.filter(p=>!p.bad);if(!ok.length)return;
+  if($("b-cat").value===NEWV){toast("ধরন বেছে নিন");return}
   const c=$("b-cat").value,src=getSrc("b"),t=Date.now();
   const tr={id:newId(),t,src,fare:num($("b-fare").value),extra:cleanCosts("b"),open:false};S.trips.push(tr);
   ok.forEach((p,i)=>S.items.push({id:newId()+i,created:t,trip:tr.id,name:p.name,cat:c,src,qty:p.qty,sold:0,rev:0,total:p.total,fare:p.fare,extra:p.extra,sell:p.sell,updated:t+i}));
@@ -701,7 +881,7 @@ function openEdit(it){
   if(S.prefs.pin&&Date.now()>=unlockedUntil){withPin(()=>openEdit(it));return}
   editing=it;$("e-err").textContent="";slots.e=null;
   $("e-ph").innerHTML=it.thumb?`<img src="${esc(it.thumb)}" alt="">`:"📷";
-  $("e-name").value=it.name;$("e-cat").value=it.cat||"অন্যান্য";setSrc("e",it.src||"");
+  $("e-name").value=it.name;fillSel($("e-cat"),"cats",it.cat||L("cats")[0]);setSrc("e",it.src||"");
   $("e-qty").value=bnRaw(it.qty||0);$("e-sold").value=bnRaw(it.sold||0);$("e-total").value=bnRaw(it.total||0);$("e-fare").value=bnRaw(it.fare||0);$("e-sell").value=bnRaw(it.sell||0);
   const tr=it.trip&&S.trips.find(t=>t.id===it.trip);
   if(tr)$("e-fare").value=it.ownFare?bnRaw(it.ownFare):"";
@@ -724,6 +904,7 @@ $("edit").onsubmit=e=>{
   e.preventDefault();const it=editing;if(!it)return;
   const name=$("e-name").value.trim(),sellP=num($("e-sell").value);
   if(!name||!(sellP>0)){$("e-err").textContent="নাম আর বিক্রির দাম দিতে হবে।";return}
+  if($("e-cat").value===NEWV){$("e-err").textContent="ধরন বেছে নিন।";return}
   if(!it.created)it.created=it.updated||Date.now();
   const newSold=num($("e-sold").value);
   if(newSold!==(it.sold||0)&&!(it.vars||[]).length){const dl=newSold-(it.sold||0);it.soldBase=(it.soldBase||0)+dl;it.revBase=(it.revBase||0)+dl*sellP}
@@ -842,8 +1023,8 @@ window.onUpdateReady=()=>toast("app-এর নতুন version এসেছে"
    আরও: বাকি, খরচ ও ক্যাশ, ধার, কেনার তালিকা, রিচার্জ/বিকাশ, পাইকার, রিপোর্ট, সেটিংস
    ==================================================================== */
 let moreView="home";
-const TILES=[["baki","📒","বাকির খাতা"],["cash","💵","দোকানের খরচ ও ক্যাশ"],["loan","🤝","ধারের হিসাব"],["shop","🛒","কেনার তালিকা"],["svc","📱","রিচার্জ · বিকাশ · বিল"],["sup","🏪","পাইকারের তালিকা"],["report","📊","মাসিক রিপোর্ট"],["set","⚙️","Backup · PIN · Update"]];
-const EXPL=["বিদ্যুৎ বিল","চা-নাস্তা","দোকান ভাড়া","মেরামত","পরিবহন","মোবাইল/নেট","অন্য খরচ"];
+const TILES=[["baki","📒","বাকির খাতা"],["cash","💵","দোকানের খরচ ও ক্যাশ"],["loan","🤝","ধারের হিসাব"],["shop","🛒","কেনার তালিকা"],["svc","📱","রিচার্জ · বিকাশ · বিল"],["sup","🏪","পাইকারের তালিকা"],["report","📊","মাসিক রিপোর্ট"],["lists","🗂️","তালিকা সাজান"],["set","⚙️","Backup · PIN · Update"]];
+
 const SVC=[["রিচার্জ",1],["বিকাশ ক্যাশ ইন",1],["বিকাশ ক্যাশ আউট",-1],["নগদ/রকেট",1],["বিদ্যুৎ বিল জমা",1],["অন্য সেবা",1]];
 const monthKey=(d=new Date())=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
 const inMonth=(t,m)=>monthKey(new Date(t))===m;
@@ -873,7 +1054,7 @@ function renderMore(){
     return;
   }
   const [mv,arg]=moreView.split(":");
-  ({baki:viewBaki,cash:viewCash,loan:viewLoan,shop:viewShop,svc:viewSvc,sup:viewSup,report:viewReport,set:viewSettings})[mv](box,arg);
+  ({lists:viewLists,baki:viewBaki,cash:viewCash,loan:viewLoan,shop:viewShop,svc:viewSvc,sup:viewSup,report:viewReport,set:viewSettings})[mv](box,arg);
   if($("mb-back"))$("mb-back").onclick=()=>{moreView=mv==="baki"&&arg?"baki":"home";renderMore();window.scrollTo(0,0)};
 }
 
@@ -928,7 +1109,7 @@ function viewCash(box){
   box.innerHTML=`${moreHead("দোকানের খরচ ও ক্যাশ")}
   <div class="panel"><h3 style="margin:0">দোকানের খরচ লিখুন</h3>
     <p class="help">যে খরচ কোনো মালের সাথে না (বিদ্যুৎ, চা-নাস্তা, মেরামত…)। এগুলো লাভ থেকে বাদ যাবে।</p>
-    <div class="two"><label class="f">কিসের খরচ<select id="ex-l">${EXPL.map(x=>`<option>${x}</option>`).join("")}</select></label><label class="f">টাকা (৳)<input id="ex-a" inputmode="decimal"></label></div>
+    <div class="two"><label class="f">কিসের খরচ<select id="ex-l" data-list="exps">${optsHtml("exps",L("exps")[0])}</select></label><label class="f">টাকা (৳)<input id="ex-a" inputmode="decimal"></label></div>
     <label class="f">নোট (ইচ্ছা হলে)<input id="ex-n"></label>
     <button type="button" class="btn primary" id="ex-add">খরচ যোগ করুন</button></div>
   <div class="sec"><h3>আজকের ক্যাশ মেলানো</h3><div class="panel">
@@ -951,7 +1132,7 @@ function viewCash(box){
   $("cs-open").onchange=()=>{day().open=num($("cs-open").value);save();renderMore()};
   $("cs-count").oninput=diff;$("cs-count").onchange=()=>{const v=$("cs-count").value.trim();day().counted=v?num(v):null;save()};diff();
   $("ex-add").onclick=()=>{const a=num($("ex-a").value);if(!(a>0)){toast("টাকার পরিমাণ লিখুন");return}
-    S.expenses.push({id:newId(),t:Date.now(),l:$("ex-l").value,a,note:$("ex-n").value.trim()});save();renderMore();toast("খরচ যোগ হলো")};
+    if($("ex-l").value===NEWV){toast("খরচের ধরন বেছে নিন");return}S.expenses.push({id:newId(),t:Date.now(),l:$("ex-l").value,a,note:$("ex-n").value.trim()});save();renderMore();toast("খরচ যোগ হলো")};
   box.querySelectorAll("[data-exdel]").forEach(b=>b.onclick=()=>armed(b,()=>{kill("expenses",S.expenses.find(e=>e.id===b.dataset.exdel));save();renderMore()}));
 }
 
@@ -990,7 +1171,7 @@ function viewShop(box){
   box.innerHTML=`${moreHead("কেনার তালিকা")}
   <p class="help">যেগুলো কম আছে বা দ্রুত বিক্রি হচ্ছে সেগুলো নিজে থেকে এখানে আসে, বাজার অনুযায়ী ভাগ করা। নিজেও যোগ করতে পারবেন।</p>
   <div class="panel"><div class="two"><label class="f">জিনিসের নাম<input id="sh-n"></label><label class="f">কয়টা<input id="sh-q" inputmode="numeric"></label></div>
-    <label class="f">কোন বাজার<select id="sh-src">${places().map(x=>`<option>${esc(x)}</option>`).join("")}</select></label>
+    <label class="f">কোন বাজার<select id="sh-src" data-list="places">${optsHtml("places",L("places")[0])}</select></label>
     <button type="button" class="btn primary" id="sh-add">তালিকায় যোগ করুন</button></div>
   ${Object.keys(groups).length?Object.entries(groups).map(([g,rows])=>`<div class="sec"><h3>${esc(g)}</h3>${rows.map(r=>r.auto?
     `<div class="mini"><span>${esc(r.it.name)}<br><small style="color:var(--muted)">আছে ${bn(left(r.it))}টা · আগে কিনেছিলেন ${bn(r.it.qty)}টা${unit(r.it)!=null?` · শেষ খরচ ৳${bn(unit(r.it))}/পিস`:""}</small></span><b class="stock ${left(r.it)?"low":"out"}">${left(r.it)?"কম":"শেষ"}</b></div>`:
@@ -1030,7 +1211,7 @@ function viewSvc(box){
 function viewSup(box){
   box.innerHTML=`${moreHead("পাইকারের তালিকা")}
   <div class="panel"><div class="two"><label class="f">দোকান/পাইকারের নাম<input id="sp-n"></label><label class="f">ফোন<input id="sp-p" inputmode="tel"></label></div>
-    <label class="f">কোন বাজার<select id="sp-src">${places().map(x=>`<option>${esc(x)}</option>`).join("")}</select></label>
+    <label class="f">কোন বাজার<select id="sp-src" data-list="places">${optsHtml("places",L("places")[0])}</select></label>
     <label class="f">কী মাল ভালো দেয়, দাম কেমন<input id="sp-note" placeholder="যেমন: লুঙ্গি ভালো, ডজন ১১০০"></label>
     <button type="button" class="btn primary" id="sp-add">যোগ করুন</button></div>
   <div class="sec">${S.suppliers.length?S.suppliers.map(s=>`<div class="panel" style="gap:6px"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:20px">${esc(s.name)}</b><span class="help">${esc(s.src||"")}</span></div>
@@ -1150,7 +1331,7 @@ function slowHtml(){
 }
 
 /* ---------- boot ---------- */
-loadState();recount();stampAll(false);setLayout(S.prefs.view==="grid",true);render();fillPlaces();drawVars("o");
+loadState();recount();ensureLists();stampAll(false);renderChips();["b-cat","o-cat"].forEach(id=>fillSel($(id),"cats",L("cats")[0]));$("sortSel").value=S.prefs.sort||"name";setLayout(S.prefs.view==="grid",true);render();fillPlaces();drawVars("o");
 if(NATIVE)try{Android.ready()}catch(e){}
 setTimeout(autoSync,4000);
 </script>

@@ -1,4 +1,4 @@
-// দামের খাতা: Google Drive backup + two-phone sync  (version 2)
+// দামের খাতা: Google Drive backup + two-phone sync  (version 3)
 // Keeps one shared copy of the shop's records in your Drive ("Dokan Backup" folder),
 // merges changes from every phone that has the shop code, and saves one dated backup per day.
 
@@ -6,7 +6,8 @@ const FOLDER_NAME = "Dokan Backup";
 const MASTER_NAME = "dokan-master.json";
 const KEEP = 30; // how many daily backup files to keep
 
-const SYNC_COLS = ["items", "sales", "customers", "loans", "expenses", "services", "suppliers", "shop", "trips", "dayAdj"];
+const BASE_COLS = ["items", "sales", "customers", "loans", "expenses", "services", "suppliers", "shop", "trips", "dayAdj", "lists"];
+let SYNC_COLS = BASE_COLS.slice();
 const SYNC_MAPS = ["cash"];
 
 function mergeRec(a, b) {
@@ -55,7 +56,12 @@ function doPost(e) {
 
 function sync(body) {
   const now = Date.now(), since = body.since || 0, ch = body.changes || {};
-  const folder = getFolder(), master = loadMaster(folder);
+  const folder = getFolder();
+  // accept any record type the app sends, so new app features never need a new script
+  SYNC_COLS = [...new Set(BASE_COLS.concat(Object.keys(ch.cols || {})))];
+  const master = loadMaster(folder);
+  Object.keys(master.cols).forEach(k => { if (SYNC_COLS.indexOf(k) < 0) SYNC_COLS.push(k); });
+  SYNC_COLS.forEach(k => master.cols[k] = master.cols[k] || {});
 
   // deletions
   Object.entries(ch.tomb || {}).forEach(([id, t]) => {
@@ -130,7 +136,7 @@ function prune(folder) {
   files.slice(KEEP).forEach(f => f.setTrashed(true));
 }
 
-function doGet() { return out({ ok: true, app: "dokan-sync", version: 2 }); }
+function doGet() { return out({ ok: true, app: "dokan-sync", version: 3 }); }
 
 // Run this from the editor only if you want to start using a new shop code.
 function resetShopCode() { PropertiesService.getScriptProperties().deleteProperty("KEY"); }
