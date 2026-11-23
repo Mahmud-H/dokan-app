@@ -8,19 +8,28 @@
 @font-face{font-family:"Kalpurush";src:url(data:font/woff2;base64,__FONT__) format("woff2");font-weight:400 700;font-display:swap}
 /* Layout: phone-first single column; sticky header with search, three views switched by a bottom tab bar; items as list or 2-column grid */
 :root{
-  --bg:#f4f5f1; --surface:#ffffff; --fg:#141a17; --muted:#4a534d; --line:#e1e4de;
-  --accent:#1f7a52; --accent-fg:#ffffff; --accent-soft:#e3f1e9; --price:#0f5c3c;
-  --warn:#b4610a; --danger:#b3261e;
+  --bg:#f4f6f8; --surface:#ffffff; --surface2:#f3f4f6; --fg:#1f2937; --muted:#4b5563; --line:#dde1e6;
+  --accent:#1f7a52; --accent-fg:#ffffff; --accent-soft:#e8f5e9; --price:#156b46;
+  --warn:#c25e00; --warn-soft:#fff3e0; --danger:#c62828; --danger-soft:#ffebee;
+  --bar:#1f7a52; --bar-fg:#ffffff; --shadow:0 2px 8px rgb(0 0 0/.07); --chipbg:#ffffff;
   --font:"Kalpurush","Nirmala UI",Roboto,system-ui,sans-serif;
 }
-@media (prefers-color-scheme:dark){:root{
-  --bg:#131816; --surface:#1c2320; --fg:#f2f5f3; --muted:#b9c2bc; --line:#2c3531;
-  --accent:#3fae7b; --accent-fg:#0d1311; --accent-soft:#1f3a2d; --price:#79d8a9;
-  --warn:#f0a952; --danger:#f2867e; color-scheme:dark}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101413; --surface:#1b2120; --surface2:#232a28; --fg:#f2f5f3; --muted:#b4beb8; --line:#313a37;
+  --accent:#3fae7b; --accent-fg:#0b120f; --accent-soft:#1b3a2b; --price:#7fdcae;
+  --warn:#f4ad5a; --warn-soft:#3b2a12; --danger:#f2867e; --danger-soft:#3f1d1c;
+  --bar:#15402c; --bar-fg:#ffffff; --shadow:0 2px 10px rgb(0 0 0/.45); --chipbg:#232a28; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101413; --surface:#1b2120; --surface2:#232a28; --fg:#f2f5f3; --muted:#b4beb8; --line:#313a37;
+  --accent:#3fae7b; --accent-fg:#0b120f; --accent-soft:#1b3a2b; --price:#7fdcae;
+  --warn:#f4ad5a; --warn-soft:#3b2a12; --danger:#f2867e; --danger-soft:#3f1d1c;
+  --bar:#15402c; --bar-fg:#ffffff; --shadow:0 2px 10px rgb(0 0 0/.45); --chipbg:#232a28; color-scheme:dark}
 *{-webkit-tap-highlight-color:transparent}
 html,body{margin:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:18px;line-height:1.5}
 .wrap{max-width:680px;margin:0 auto;padding:0 14px 96px}
+main{padding-top:2px}
+#v-add,#v-sum,#v-more{padding-top:12px}
 header{position:sticky;top:0;background:var(--bg);padding:12px 0 10px;z-index:5;display:flex;flex-direction:column;gap:8px}
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 h1{margin:0;font-size:23px;font-weight:700}
@@ -139,7 +148,7 @@ tr.bad td{color:var(--danger)}
 .mini{display:flex;justify-content:space-between;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .mini span{min-width:0;overflow-wrap:anywhere}
 .mini b{white-space:nowrap}
-.warnbox{background:#fdebd3;color:#6b3a05;border-radius:10px;padding:10px 12px;font-size:16px}
+.warnbox{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:16px}
 .okbox{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:16px}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px;z-index:8}
 nav button{border:0;background:none;padding:9px 2px;border-radius:10px;font-weight:600;font-size:17px;color:var(--muted)}
@@ -186,17 +195,71 @@ input:disabled{opacity:.6}
 .chk{width:36px;height:36px;border-radius:9px;border:2px solid var(--line);display:grid;place-items:center;font-size:22px;color:var(--accent-fg);background:var(--surface)}
 .item.picked .chk{background:var(--accent);border-color:var(--accent)}
 .rcol{display:flex;align-items:center;gap:4px}
-.selbar{position:fixed;left:0;right:0;bottom:62px;z-index:9;background:var(--fg);color:var(--bg);display:flex;align-items:center;gap:8px;padding:8px 12px}
+.selbar{position:fixed;left:0;right:0;bottom:68px;z-index:9;background:var(--fg);color:var(--bg);display:flex;align-items:center;gap:8px;padding:8px 12px}
 .selbar span{flex:1;font-size:16px}.selbar button{border:0;border-radius:8px;padding:7px 12px;font-size:15px;font-weight:600;background:var(--surface);color:var(--fg)}
 .selbar #selAct{background:var(--accent);color:var(--accent-fg)}
 .selbar:not([hidden]) ~ .toast{bottom:128px}.selbar button:disabled{opacity:.5}
+/* ===== নতুন চেহারা ===== */
+.topbar{position:sticky;top:0;z-index:12;background:var(--bar);color:var(--bar-fg);box-shadow:0 2px 6px rgb(0 0 0/.18)}
+.tb-in{max-width:680px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px}
+.tb-title{display:flex;align-items:center;gap:8px;min-width:0}.tb-ico{font-size:26px;line-height:1}
+.topbar h1{font-size:24px;color:var(--bar-fg);white-space:nowrap}
+.topbar .today{background:rgb(255 255 255/.18);border:1px solid rgb(255 255 255/.32);color:var(--bar-fg);padding:3px 12px;border-radius:20px;font-size:16px;white-space:nowrap}
+.topbar .today b{color:var(--bar-fg)}
+.topbar .lockbtn{width:40px;height:40px;border-radius:50%;background:rgb(255 255 255/.18);border:1px solid rgb(255 255 255/.4);color:#fff;font-size:19px}
+.topbar .lockbtn.locked{background:rgb(255 255 255/.32);border-color:#fff}
+header{top:60px;padding-top:12px}
+#searchBox{position:relative}
+#q{height:54px;border-radius:14px;padding-right:46px;box-shadow:var(--shadow)}
+.qx{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;border:0;background:var(--surface2);color:var(--muted);font-size:15px}
+.chips{gap:8px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chip{padding:7px 16px;font-size:17px;font-weight:600;border:1.5px solid var(--line);background:var(--chipbg);color:var(--muted)}
+.chip[aria-pressed="true"]{color:var(--accent-fg)}
+.vt{border:1.5px solid var(--line);border-radius:10px}.vt button{font-weight:600;padding:6px 12px}
+.item{border-radius:14px;padding:10px;box-shadow:var(--shadow)}
+.item .ph{border:1px solid var(--line);border-radius:11px}
+.item .nm{font-weight:700}
+.item .sub{align-items:center;gap:6px}
+.item .sub>span{font-size:14px;padding:1px 8px;border-radius:7px;background:var(--surface2);border:1px solid var(--line);color:var(--muted)}
+.item .sub>.stock{font-size:15px;font-weight:700;background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.item .sub>.stock.low{background:var(--warn-soft);color:var(--warn)}
+.item .sub>.stock.out{background:var(--danger-soft);color:var(--danger)}
+.price{font-weight:800}
+.sell{padding:8px 18px;border-radius:10px;font-weight:700;transition:transform .1s}
+.sell:active,.btn:active,.tile:active{transform:scale(.96)}
+#list.grid .item{padding:0}
+.panel,.stat,.mini,.tile,.chart,.trow,.lrow{box-shadow:var(--shadow)}
+.panel{border-radius:16px}
+.empty{padding:44px 12px}
+.empty .ei{font-size:64px;line-height:1;margin-bottom:12px}
+.empty .et{font-size:22px;font-weight:700;color:var(--fg);margin-bottom:4px}
+nav{height:68px;padding:0 4px;align-items:stretch;box-shadow:0 -2px 10px rgb(0 0 0/.06)}
+nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:4px 2px;border-radius:0;background:none!important;font-size:15px}
+nav button .ni{font-size:23px;line-height:1;transition:transform .15s}
+nav button[aria-current="page"]{color:var(--accent)}
+nav button[aria-current="page"] .ni{transform:scale(1.15)}
+.warnbox{background:var(--warn-soft);color:var(--warn)}
+.okbox{color:var(--fg)}
+.sheet-bg>.panel{border-radius:20px 20px 0 0}
+.sheet-bg>.panel::before{content:"";display:block;width:44px;height:5px;border-radius:3px;background:var(--line);margin:-6px auto 2px}
+@media (prefers-reduced-motion:no-preference){main>section:not([hidden]){animation:fadeIn .2s ease}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+/* what's new */
+.wn h3{margin:4px 0 6px;font-size:18px}
+.wn ul{margin:0 0 10px;padding-left:22px;line-height:1.7}
+.wn .ver{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.wn .ver small{color:var(--muted);font-size:14px}
+.wn .badge{display:inline-block;background:var(--accent);color:var(--accent-fg);font-size:13px;padding:1px 8px;border-radius:10px;margin-left:6px}
+.themeseg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.themeseg button{border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 4px;font-weight:600}
+.themeseg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 [hidden]{display:none!important}
 </style></head><body>
 
+<div class="topbar"><div class="tb-in"><div class="tb-title"><span class="tb-ico" aria-hidden="true">🏪</span><h1>দামের খাতা</h1></div><div class="topr"><div class="today" id="todayLine"></div><button type="button" class="lockbtn" id="lockBtn" hidden aria-label="লক করুন">🔓</button></div></div></div>
 <div class="wrap">
   <header>
-    <div class="top"><h1>দামের খাতা</h1><div class="topr"><div class="today" id="todayLine"></div><button type="button" class="lockbtn" id="lockBtn" hidden aria-label="লক করুন">🔓</button></div></div>
-    <div id="searchBox"><input id="q" type="search" placeholder="জিনিসের নাম লিখুন…" autocomplete="off" aria-label="জিনিস খুঁজুন"></div>
+    <div id="searchBox"><input id="q" type="search" placeholder="নামের ২-৩ অক্ষর লিখুন…" autocomplete="off" aria-label="জিনিস খুঁজুন"><button type="button" class="qx" id="qx" hidden aria-label="মুছুন">✕</button></div>
     <div class="chips" id="chips"></div>
     <div class="noterow" id="noteRow"><div class="note" id="note"></div>
       <div class="vt" role="group" aria-label="দেখার ধরন"><button type="button" id="vt-list" aria-pressed="true">☰ তালিকা</button><button type="button" id="vt-grid" aria-pressed="false">▦ ছবি</button></div></div>
@@ -255,11 +318,16 @@ input:disabled{opacity:.6}
 </div>
 
 <nav>
-  <button type="button" data-v="list" aria-current="page">দাম দেখুন</button>
-  <button type="button" data-v="add">মাল যোগ</button>
-  <button type="button" data-v="sum">হিসাব</button>
-  <button type="button" data-v="more">আরও</button>
+  <button type="button" data-v="list" aria-current="page"><span class="ni" aria-hidden="true">🏷️</span>দাম দেখুন</button>
+  <button type="button" data-v="add"><span class="ni" aria-hidden="true">➕</span>মাল যোগ</button>
+  <button type="button" data-v="sum"><span class="ni" aria-hidden="true">📊</span>হিসাব</button>
+  <button type="button" data-v="more"><span class="ni" aria-hidden="true">☰</span>আরও</button>
 </nav>
+
+<!-- what's new -->
+<div class="sheet-bg" id="wnBg" hidden>
+  <div class="panel wn" id="wnBox"></div>
+</div>
 
 <div class="selbar" id="selBar" hidden><span id="selCount"></span><button type="button" id="selAll">সব</button><button type="button" id="selAct">কী করবেন</button><button type="button" id="selCancel">✕</button></div>
 <div class="sheet-bg" id="bulkBg" hidden>
@@ -358,7 +426,7 @@ input:disabled{opacity:.6}
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="2.2.1";
+const APPV="2.3";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
 const SEED=__SEED__;
 const NATIVE=typeof window.Android!=="undefined";
@@ -634,7 +702,8 @@ let cat="সব",view="list";
 
 $("chips").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;cat=b.textContent;[...$("chips").children].forEach(x=>x.setAttribute("aria-pressed",x===b));render()};
 
-$("q").oninput=render;
+$("q").oninput=()=>{$("qx").hidden=!$("q").value;render()};
+$("qx").onclick=()=>{$("q").value="";$("qx").hidden=true;render();$("q").focus()};
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 function show(v){
   if((v==="sum"||v==="more")&&S.prefs.pin&&Date.now()>=unlockedUntil){withPin(()=>show(v));return}
@@ -642,6 +711,7 @@ function show(v){
   view=v;["list","add","sum","more"].forEach(x=>$("v-"+x).hidden=x!==v);
   document.querySelectorAll("nav button").forEach(b=>{if(b.dataset.v===v)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")});
   $("searchBox").hidden=$("chips").hidden=$("noteRow").hidden=$("toolsRow").hidden=v!=="list";
+  document.querySelector("header").hidden=v!=="list";
   if(v!=="list"&&(selMode||reorderMode)){selMode=false;reorderMode=false;picked.clear();toolsUI()}
   if(v==="sum")renderSum();if(v==="more")renderMore();if(v==="add"){fillPlaces();if(!$("batch").hidden)renderBatch()}window.scrollTo(0,0)}
 function setLayout(g,quiet){S.prefs.view=g?"grid":"list";$("vt-grid").setAttribute("aria-pressed",g);$("vt-list").setAttribute("aria-pressed",!g);$("list").classList.toggle("grid",g);if(!quiet){saveNow();render()}}
@@ -649,7 +719,7 @@ $("vt-list").onclick=()=>setLayout(false);$("vt-grid").onclick=()=>setLayout(tru
 let toastT;
 function toast(msg,btnText,fn,ms){$("toastMsg").textContent=msg;const b=$("toastBtn");b.hidden=!btnText;b.textContent=btnText||"";b.onclick=()=>{$("toast").hidden=true;fn&&fn()};
   $("toast").hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>$("toast").hidden=true,ms||(btnText?5000:2500))}
-window.onBack=()=>{if(!$("bulkBg").hidden){$("bulkBg").hidden=true;return true}if(selMode||reorderMode){selMode=false;reorderMode=false;picked.clear();render();return true}if(!$("pinBg").hidden){$("pinBg").hidden=true;return true}if(!$("sellBg").hidden){$("sellBg").hidden=true;return true}if(view==="more"&&moreView!=="home"){moreView=moreView.startsWith("baki:")?"baki":"home";renderMore();return true}if(!$("editBg").hidden){closeEdit();return true}if(view!=="list"){show("list");return true}return false};
+window.onBack=()=>{if(!$("wnBg").hidden){$("wnBg").hidden=true;S.prefs.seenVer=APPV;saveNow();return true}if(!$("bulkBg").hidden){$("bulkBg").hidden=true;return true}if(selMode||reorderMode){selMode=false;reorderMode=false;picked.clear();render();return true}if(!$("pinBg").hidden){$("pinBg").hidden=true;return true}if(!$("sellBg").hidden){$("sellBg").hidden=true;return true}if(view==="more"&&moreView!=="home"){moreView=moreView.startsWith("baki:")?"baki":"home";renderMore();return true}if(!$("editBg").hidden){closeEdit();return true}if(view!=="list"){show("list");return true}return false};
 
 /* ---------- places dropdown ---------- */
 const places=()=>L("places");
@@ -664,9 +734,9 @@ function render(){
   const list=sortItems(S.items.filter(it=>(cat==="সব"||(cat==="কম আছে"?left(it)<=2:it.cat===cat))&&(!s||toEn(it.name.toLowerCase()).includes(s))));
   $("list").classList.toggle("grid",S.prefs.view==="grid"&&!reorderMode);toolsUI();
   $("todayLine").innerHTML=`আজ বিক্রি: <b>${bn(today().n)}টা</b>`;lockUI();
-  $("note").textContent=S.items.length?`${bn(S.items.length)} রকম জিনিস`:"";
-  if(!S.items.length){$("list").innerHTML=`<div class="empty">এখনো কোনো জিনিস নেই।<br>নিচে <b>মাল যোগ</b> চাপুন। একসাথে অনেকগুলো লিখে দিতে পারবেন।</div>`;return}
-  if(!list.length){$("list").innerHTML=`<div class="empty">"${esc($("q").value)}" পাওয়া যায়নি।</div>`;return}
+  $("note").textContent=S.items.length?`মোট ${bn(S.items.length)}টি জিনিস`:"";
+  if(!S.items.length){$("list").innerHTML=`<div class="empty"><div class="ei">📦</div><div class="et">এখনো কোনো জিনিস নেই</div>নিচে <b>মাল যোগ</b> চাপুন। একসাথে অনেকগুলো লিখে দিতে পারবেন।</div>`;return}
+  if(!list.length){$("list").innerHTML=`<div class="empty"><div class="ei">🔍</div><div class="et">কোনো জিনিস পাওয়া যায়নি</div>${$("q").value?`"${esc($("q").value)}" নামে কিছু নেই। বানানটা একটু বদলে দেখুন।`:"এই ধরনে এখনো কোনো জিনিস নেই।"}</div>`;return}
   $("list").innerHTML=list.map(it=>{const l=left(it);
     return `<div class="item" data-id="${esc(it.id)}">
       <button type="button" class="ph" data-edit>${phHtml(it)}</button>
@@ -1064,7 +1134,7 @@ function viewBaki(box,id){
     const bal=custBal(c);
     box.innerHTML=`<div class="backrow"><button type="button" class="btn" id="mb-back">← সবাই</button><h2>${esc(c.name)}</h2></div>
     <div class="panel">
-      <div class="okbox" style="${bal>0?"background:#fdebd3;color:#6b3a05":""}">${bal>0?`পাওনা: <b style="font-size:24px">৳${bn(bal)}</b>`:bal<0?`অগ্রিম দেওয়া আছে ৳${bn(-bal)}`:"কোনো বাকি নেই ✓"}</div>
+      <div class="okbox" style="${bal>0?"background:var(--warn-soft);color:var(--warn)":""}">${bal>0?`পাওনা: <b style="font-size:24px">৳${bn(bal)}</b>`:bal<0?`অগ্রিম দেওয়া আছে ৳${bn(-bal)}`:"কোনো বাকি নেই ✓"}</div>
       ${c.phone?`<p class="help">ফোন: <b>${esc(c.phone)}</b></p>`:""}
       <div class="two"><label class="f">টাকা (৳)<input id="bk-amt" inputmode="decimal"></label><label class="f">নোট (ইচ্ছা হলে)<input id="bk-note"></label></div>
       <div class="btns"><button type="button" class="btn primary" id="bk-pay">টাকা পেলাম</button><button type="button" class="btn" id="bk-due">বাকি দিলাম</button></div>
@@ -1248,6 +1318,8 @@ function viewReport(box){
 function viewSettings(box){
   const P=S.prefs,since=S.lastBackup?Math.floor((Date.now()-S.lastBackup)/864e5):null;
   box.innerHTML=`${moreHead("Backup · PIN · Update")}
+  <div class="sec"><h3>🎨 থিম</h3>
+    <div class="themeseg"><button type="button" data-th="system" aria-pressed="${(P.theme||"system")==="system"}">📱 ফোনের মতো</button><button type="button" data-th="light" aria-pressed="${P.theme==="light"}">☀️ আলো</button><button type="button" data-th="dark" aria-pressed="${P.theme==="dark"}">🌙 অন্ধকার</button></div></div>
   <div class="sec"><h3>হিসাব লক (PIN)</h3>
     <p class="help">PIN দিলে <b>হিসাব</b>, <b>আরও</b> আর জিনিসের কেনা দাম দেখতে PIN লাগবে। দাম দেখা আর বিক্রি করা আগের মতোই খোলা থাকবে।</p>
     ${P.pin?`<div class="okbox">PIN চালু আছে।${bioAvail()?(P.bio!==false?" আঙুলের ছাপ দিয়েও খোলা যায়।":" আঙুলের ছাপ বন্ধ।"):""}</div>
@@ -1270,7 +1342,10 @@ function viewSettings(box){
     <div class="btns"><button type="button" class="btn" id="bk-save">Backup নিন</button><button type="button" class="btn" id="bk-load">Backup থেকে ফেরত আনুন</button></div></div>
   <div class="sec"><h3>App Update</h3>
     <div class="btns"><button type="button" class="btn" id="up-check">নতুন version আছে কিনা দেখুন</button></div>
+    <button type="button" class="btn" id="wn-open">🎉 নতুন কী আছে</button>
     <p class="help" style="text-align:center">এখনকার version ${bnVer(APPV)}</p></div>`;
+  box.querySelectorAll("[data-th]").forEach(b=>b.onclick=()=>{S.prefs.theme=b.dataset.th;applyTheme();saveNow();renderMore()});
+  $("wn-open").onclick=()=>showWhatsNew(true);
   $("bk-save").onclick=doBackup;$("bk-load").onclick=()=>{if(NATIVE)Android.pickBackup();else $("fileBak").click()};
   $("up-check").onclick=checkUpdate;
   if(P.driveUrl){$("dr-now").onclick=()=>sync(true);$("dr-off").onclick=()=>armed($("dr-off"),()=>{S.prefs.driveUrl="";saveNow();renderMore()})}
@@ -1330,9 +1405,36 @@ function slowHtml(){
   `<div class="sec"><h3>৩০ দিনে বিক্রি হয়নি</h3>${slow.length?`<p class="help">এগুলোতে টাকা আটকে আছে। সামনে সাজিয়ে রাখুন বা একটু ছাড় দিন।</p>`+slow.slice(0,10).map(it=>`<div class="mini"><span>${esc(it.name)}<br><small style="color:var(--muted)">আছে ${bn(left(it))}টা · কেনা দামে ৳${bn(left(it)*(unit(it)||0))}</small></span><b class="stock low">${bn(Math.floor((now-(it.lastSold||it.created||it.updated))/864e5))} দিন</b></div>`).join(""):`<p class="help">সব জিনিসই নিয়মিত বিক্রি হচ্ছে।</p>`}</div>`;
 }
 
+
+/* ---------- থিম ---------- */
+function applyTheme(){const t=S.prefs.theme||"system";if(t==="system")delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=t}
+/* ---------- নতুন কী আছে (Play Store-এর মতো) ---------- */
+const CHANGES=[
+ ["2.3","২৩ নভেম্বর ২০২৬",["নতুন চেহারা: সবুজ উপরের বার, নিচে ছবিসহ বাটন, সুন্দর কার্ড আর রঙিন stock চিহ্ন","🌙 অন্ধকার থিম (Dark mode): আরও → Backup · PIN · Update → থিম","খোঁজার ঘরে ✕ দিয়ে এক চাপে মুছে ফেলা","প্রতিটা update-এর পর এই \"নতুন কী আছে\" তালিকা"]],
+ ["2.2","২৩ নভেম্বর ২০২৬",["🗂️ তালিকা সাজান: ধরন, বাজার, খরচের নাম যোগ, বদল, মুছা, টেনে সাজানো","যেকোনো dropdown থেকে \"+ নতুন যোগ করুন\"","জিনিস সাজানো: দাম, নতুন, কম আছে, বেশি বিক্রি, নিজের মতো ক্রম","☑ বাছাই: একসাথে অনেক জিনিস মুছা, ধরন বা দাম বদলানো","ব্যাচের জিনিসে আলাদা ভাড়া ও খরচ, ব্যাচের বাজার বদলানো"]],
+ ["2.1","২১ নভেম্বর ২০২৬",["🔒 সব পাতার উপরে তালা: এক চাপে লক","গ্রাফ হিসাবের উপরের দিকে"]],
+ ["2.0","২১ নভেম্বর ২০২৬",["📱📱 দুই ফোনের হিসাব নিজে থেকে মিলে যায় (Drive দিয়ে)","দোকানের কোড দিয়ে নতুন ফোন যুক্ত করা","Drive-এ প্রতিদিন নিজে থেকে backup"]],
+ ["1.5","২১ নভেম্বর ২০২৬",["👆 আঙুলের ছাপ দিয়ে খোলা","PIN ভুলে গেলে কেনা দাম দিয়ে খোলা"]],
+ ["1.4","২১ নভেম্বর ২০২৬",["🛒 ব্যাচে কেনাকাটা: এক বাজারের ভাড়া ও খরচ সব জিনিসে ভাগ"]],
+ ["1.3","২১ নভেম্বর ২০২৬",["📒 বাকির খাতা","💵 দোকানের খরচ ও ক্যাশ মেলানো","🤝 ধারের হিসাব","কেনার তালিকা, রিচার্জ/বিকাশ, পাইকার, মাসিক রিপোর্ট","PIN লক, সাইজ/রং, ৩০ দিনে বিক্রি না হওয়া জিনিস"]],
+ ["1.2","২১ নভেম্বর ২০২৬",["📊 গ্রাফ","বিক্রি ফেরত","ভাড়ার পাশাপাশি লেবার, কুরিয়ার, ঘাটের খরচ"]],
+ ["1.1","২১ নভেম্বর ২০২৬",["বিক্রির সময় দাম আর কয়টা বদলানো","ছবি মোড (grid)","সব সংখ্যা বাংলায়","Google Drive backup"]],
+ ["1.0","২১ নভেম্বর ২০২৬",["দামের খাতা চালু: দাম খোঁজা, ছবি, এক চাপে বিক্রি, internet ছাড়াই চলে"]]];
+function wnHtml(list){return list.map(([v,d,xs],i)=>`<div class="ver"><h3>Version ${bnVer(v)}${v===APPV?`<span class="badge">এখন চলছে</span>`:""}</h3><small>${d}</small></div><ul>${xs.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`).join("")}
+function showWhatsNew(all){
+  const cur=CHANGES.filter(c=>c[0]===APPV),list=all?CHANGES:(cur.length?cur:CHANGES.slice(0,1));
+  $("wnBox").innerHTML=`<h2>${all?"📋 সব update-এর তালিকা":"🎉 নতুন কী আছে"}</h2>${wnHtml(list)}
+    <div class="btns">${all?"":`<button type="button" class="btn" id="wn-all">আগের update-গুলো</button>`}<button type="button" class="btn primary" id="wn-ok">ঠিক আছে</button></div>`;
+  $("wnBg").hidden=false;$("wnBox").scrollTop=0;
+  $("wn-ok").onclick=()=>{$("wnBg").hidden=true;S.prefs.seenVer=APPV;saveNow()};
+  if($("wn-all"))$("wn-all").onclick=()=>showWhatsNew(true);
+}
+$("wnBg").onclick=e=>{if(e.target===$("wnBg")){$("wnBg").hidden=true;S.prefs.seenVer=APPV;saveNow()}};
+
 /* ---------- boot ---------- */
-loadState();recount();ensureLists();stampAll(false);renderChips();["b-cat","o-cat"].forEach(id=>fillSel($(id),"cats",L("cats")[0]));$("sortSel").value=S.prefs.sort||"name";setLayout(S.prefs.view==="grid",true);render();fillPlaces();drawVars("o");
+loadState();applyTheme();recount();ensureLists();stampAll(false);renderChips();["b-cat","o-cat"].forEach(id=>fillSel($(id),"cats",L("cats")[0]));$("sortSel").value=S.prefs.sort||"name";setLayout(S.prefs.view==="grid",true);render();fillPlaces();drawVars("o");
 if(NATIVE)try{Android.ready()}catch(e){}
 setTimeout(autoSync,4000);
+if(S.prefs.seenVer!==APPV){if(S.items.length||S.prefs.seenVer)setTimeout(()=>{if(S.prefs.seenVer!==APPV)showWhatsNew(false)},600);else{S.prefs.seenVer=APPV}}
 </script>
 </body></html>
