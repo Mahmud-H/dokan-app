@@ -1,8 +1,10 @@
-# Publishes apk/DamerKhata.apk on the Releases page whenever a tag like v1.2 is pushed.
+# Publishes apk/DamerKhata.apk on the Releases page whenever the APK (or apk/VERSION) changes on main.
 name: release-apk
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths: ["apk/**", ".github/workflows/release.yml"]
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
@@ -10,11 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - id: v
+        run: echo "ver=$(cat apk/VERSION)" >> "$GITHUB_OUTPUT"
       - uses: softprops/action-gh-release@v2
         with:
-          name: "দামের খাতা ${{ github.ref_name }}"
+          tag_name: v${{ steps.v.outputs.ver }}
+          name: "দামের খাতা APK v${{ steps.v.outputs.ver }}"
+          make_latest: true
           files: apk/DamerKhata.apk
           body: |
             **দামের খাতা** Android app (APK)।
-            নিচের **DamerKhata.apk** ফাইলটা ফোনে download করে install করুন।
+            নিচে **Assets**-এর ভেতরের **DamerKhata.apk** ফাইলটা ফোনে download করে install করুন।
             একবার install করলে app-এর ভেতরের নতুন সব feature নিজে থেকেই update হয়, আবার APK লাগে না।
