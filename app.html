@@ -426,9 +426,9 @@ nav button[aria-current="page"] .ni{transform:scale(1.15)}
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastBtn" hidden></button></div>
 
 <script>
-const APPV="2.3";
+const APPV="2.4";
 const REMOTE="https://raw.githubusercontent.com/Mahmud-H/dokan-app/main/app.html";
-const SEED={"v": 3, "items": [], "days": {}};
+const SEED={"v":3,"items":[],"days":{}};
 const NATIVE=typeof window.Android!=="undefined";
 const CATS=["কাপড়","প্লাস্টিক","খেলনা","মেয়েদের জিনিস","মুদি","অন্যান্য"];
 const COSTL_DEF=["লেবার","কুরিয়ার","মার্কেট চার্জ","নৌকা ঘাট","টোল","রিকশা/ভ্যান","খাওয়া-দাওয়া","অন্য খরচ"];
@@ -838,9 +838,10 @@ function renderBatch(){
     box.innerHTML=`<p class="help">এক বাজার থেকে একবারে যা যা কিনলেন (খেলনা, প্লাস্টিক, মেয়েদের জিনিস…) সব একটা ব্যাচে রাখুন। ভাড়া আর অন্য খরচ <b>একবার</b> লিখলেই প্রতিটা জিনিসে তার দাম অনুযায়ী ভাগ হয়ে যাবে। পরে খরচ বদলালেও আবার ভাগ হবে।</p>
       <label class="f">কোন বাজার থেকে<select id="tr-src" data-list="places">${optsHtml("places",L("places")[0])}</select></label>
       <button type="button" class="btn primary" id="tr-new">নতুন ব্যাচ শুরু করুন</button>
-      ${recent.length?`<h3 style="margin:10px 0 0;font-size:18px">আগের ব্যাচ</h3>`+recent.map(t=>{const its=tripItems(t);return `<div class="mini"><span>${esc(t.src||"")} · ${bnDate(dayKey(new Date(t.t)))}<br><small style="color:var(--muted)">${bn(its.length)}টা জিনিস · মাল ৳${bn(its.reduce((a,i)=>a+(i.total||0),0))} · খরচ ৳${bn(tripCost(t))}</small></span><button type="button" class="undo" style="color:var(--accent)" data-tropen="${t.id}">খুলুন</button></div>`}).join(""):""}`;
+      ${recent.length?`<h3 style="margin:10px 0 0;font-size:18px">আগের ব্যাচ</h3>`+recent.map(t=>{const its=tripItems(t);return `<div class="mini"><span>${esc(t.src||"")} · ${bnDate(dayKey(new Date(t.t)))}<br><small style="color:var(--muted)">${bn(its.length)}টা জিনিস · মাল ৳${bn(its.reduce((a,i)=>a+(i.total||0),0))} · খরচ ৳${bn(tripCost(t))}</small></span><span style="display:flex;gap:4px"><button type="button" class="undo" style="color:var(--accent)" data-tropen="${t.id}">খুলুন</button><button type="button" class="undo" style="color:var(--danger)" data-trdel="${t.id}" aria-label="মুছুন">🗑️</button></span></div>`}).join(""):""}`;
     $("tr-new").onclick=()=>{const src=$("tr-src").value;if(!src||src===NEWV){toast("বাজারের নাম দিন");return}
       const t={id:newId(),t:Date.now(),src,fare:0,extra:[],open:true};S.trips.push(t);S.prefs.openTrip=t.id;save();renderBatch()};
+    box.querySelectorAll("[data-trdel]").forEach(b=>b.onclick=()=>{const t=S.trips.find(x=>x.id===b.dataset.trdel);if(!t)return;t.open=true;S.prefs.openTrip=t.id;renderBatch();$("tr-del").click();setTimeout(()=>$("tr-del").scrollIntoView({block:"center"}),50)});
     box.querySelectorAll("[data-tropen]").forEach(b=>b.onclick=()=>{const t=S.trips.find(x=>x.id===b.dataset.tropen);t.open=true;S.prefs.openTrip=t.id;save();renderBatch();window.scrollTo(0,0)});
     return;
   }
@@ -859,7 +860,9 @@ function renderBatch(){
     <button type="button" class="btn primary" id="t-add">ব্যাচে যোগ করুন</button>
     <h3 style="margin:8px 0 0;font-size:18px">এই ব্যাচে যা আছে</h3>
     <div id="t-list"></div>
-    <div class="btns" style="margin-top:6px"><button type="button" class="btn primary" id="tr-close">ব্যাচ শেষ করুন</button></div>`;
+    <div class="btns" style="margin-top:6px"><button type="button" class="btn primary" id="tr-close">ব্যাচ শেষ করুন</button></div>
+    <button type="button" class="btn del" id="tr-del" style="width:100%;margin-top:8px">🗑️ এই ব্যাচ মুছুন</button>
+    <div id="tr-delbox" hidden style="margin-top:8px;display:grid;gap:8px"></div>`;
   drawCosts("t");drawTripList();
   $("tr-fare").oninput=()=>{tr.fare=num($("tr-fare").value);tripChanged()};
   $("tr-srced").onchange=()=>{const v=$("tr-srced").value;if(!v||v===NEWV||v===tr.src)return;tr.src=v;tripItems(tr).forEach(i=>i.src=v);save();render();renderBatch();toast(`বাজার বদলে "${v}" হলো, এই ব্যাচের সব জিনিসেও`)};
@@ -873,7 +876,28 @@ function renderBatch(){
     S.prefs.lastTripCat=it.cat;save();render();
     ["t-name","t-total","t-sell"].forEach(id=>$(id).value="");setPhoto("t",null);drawTripList();$("t-name").focus();toast(`${name} ব্যাচে যোগ হলো`);
   };
+  $("tr-del").onclick=()=>withPin(()=>{const box=$("tr-delbox"),its=tripItems(tr),sold=its.reduce((a,i)=>a+(i.sold||0),0);
+    if(!box.hidden){box.hidden=true;return}
+    box.innerHTML=`<p class="help" style="margin:0">কীভাবে মুছবেন?</p>
+      <button type="button" class="btn" id="trd-keep" style="width:100%">শুধু ব্যাচটা মুছুন, ${bn(its.length)}টা জিনিস থাকবে</button>
+      ${its.length?`<button type="button" class="btn del" id="trd-all" style="width:100%">ব্যাচ আর এর ${bn(its.length)}টা জিনিস সব মুছুন</button>`:""}
+      ${sold?`<p class="help" style="margin:0">⚠️ এই ব্যাচের জিনিস ${bn(sold)}টা বিক্রি হয়েছে। জিনিস মুছলেও আগের বিক্রির টাকা হিসাবে থেকে যাবে।</p>`:""}
+      <p class="help" style="margin:0">জিনিস রাখলে ভাড়া আর খরচ যা ভাগ হয়েছিল তাই থাকবে।</p>`;
+    box.hidden=false;
+    $("trd-keep").onclick=()=>armed($("trd-keep"),()=>delTrip(tr,false));
+    if($("trd-all"))$("trd-all").onclick=()=>armed($("trd-all"),()=>delTrip(tr,true));
+  });
   $("tr-close").onclick=()=>{tr.open=false;S.prefs.openTrip="";save();renderBatch();toast("ব্যাচ শেষ হলো। পরে খুলে খরচ বদলাতে পারবেন।",null,null,3500)};
+}
+function delTrip(tr,withItems){
+  const its=tripItems(tr),copyT=JSON.parse(JSON.stringify(tr)),copyI=its.map(i=>JSON.parse(JSON.stringify(i)));
+  if(withItems)its.forEach(i=>kill("items",i));else its.forEach(i=>{delete i.trip;i.updated=Date.now()});
+  kill("trips",tr);if(S.prefs.openTrip===tr.id)S.prefs.openTrip="";
+  save();render();renderBatch();
+  toast(withItems?`ব্যাচ আর ${bn(its.length)}টা জিনিস মুছে ফেলা হলো`:"ব্যাচ মুছে ফেলা হলো, জিনিসগুলো আছে","ফেরত",()=>{
+    delete S.tomb[copyT.id];S.trips.push(copyT);
+    copyI.forEach(c=>{delete S.tomb[c.id];const cur=S.items.find(x=>x.id===c.id);if(cur)cur.trip=copyT.id;else S.items.push(c)});
+    S.prefs.openTrip=copyT.open?copyT.id:"";recount();save();render();renderBatch()},6000);
 }
 function tripChanged(){const tr=openTrip();if(!tr)return;tr.extra=cleanCosts("t");redistribute(tr);save();render();drawTripList()}
 function drawTripList(){
@@ -1410,6 +1434,7 @@ function slowHtml(){
 function applyTheme(){const t=S.prefs.theme||"system";if(t==="system")delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=t}
 /* ---------- নতুন কী আছে (Play Store-এর মতো) ---------- */
 const CHANGES=[
+ ["2.4","২৪ নভেম্বর ২০২৬",["🗑️ ব্যাচ মুছা: শুধু ব্যাচ, অথবা ব্যাচের সব জিনিসসহ","আগের ব্যাচের তালিকা থেকেও সরাসরি মুছা যায়","ভুলে মুছলে \"ফেরত\" চাপলে আবার ফিরে আসে"]],
  ["2.3","২৩ নভেম্বর ২০২৬",["নতুন চেহারা: সবুজ উপরের বার, নিচে ছবিসহ বাটন, সুন্দর কার্ড আর রঙিন stock চিহ্ন","🌙 অন্ধকার থিম (Dark mode): আরও → Backup · PIN · Update → থিম","খোঁজার ঘরে ✕ দিয়ে এক চাপে মুছে ফেলা","প্রতিটা update-এর পর এই \"নতুন কী আছে\" তালিকা"]],
  ["2.2","২৩ নভেম্বর ২০২৬",["🗂️ তালিকা সাজান: ধরন, বাজার, খরচের নাম যোগ, বদল, মুছা, টেনে সাজানো","যেকোনো dropdown থেকে \"+ নতুন যোগ করুন\"","জিনিস সাজানো: দাম, নতুন, কম আছে, বেশি বিক্রি, নিজের মতো ক্রম","☑ বাছাই: একসাথে অনেক জিনিস মুছা, ধরন বা দাম বদলানো","ব্যাচের জিনিসে আলাদা ভাড়া ও খরচ, ব্যাচের বাজার বদলানো"]],
  ["2.1","২১ নভেম্বর ২০২৬",["🔒 সব পাতার উপরে তালা: এক চাপে লক","গ্রাফ হিসাবের উপরের দিকে"]],
