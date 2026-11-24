@@ -561,5 +561,13 @@
 "🧾 মেমো: একজন ক্রেতার কয়েকটা জিনিস একসাথে বিক্রি, ছাড় দিয়ে মোট, মেমো WhatsApp-এ পাঠানো": "🧾 Memo: sell several items to one customer together, total with discount, send the memo on WhatsApp",
 "⏳ মুদি জিনিসের মেয়াদ: শেষ হওয়ার ৩০ দিন আগে থেকে সতর্ক করে": "⏳ Grocery expiry: warns from 30 days before",
 "📤 ল্যাপটপের website থেকে জিনিস আর বিক্রির তালিকা Excel-এ নেওয়া": "📤 Export item and sales lists to Excel from the laptop website",
-"লুঙ্গি চেক ১২ ১২০০ ১৪০\nপ্লাস্টিক জগ ১২ ৮৪০ ৯৫\nচুড়ি সেট ১২ ২৪০": "Check lungi 12 1200 140\nPlastic jug 12 840 95\nBangle set 12 240"
+"লুঙ্গি চেক ১২ ১২০০ ১৪০\nপ্লাস্টিক জগ ১২ ৮৪০ ৯৫\nচুড়ি সেট ১২ ২৪০": "Check lungi 12 1200 140\nPlastic jug 12 840 95\nBangle set 12 240",
+"➕ আরেকটা জিনিস যোগ করুন": "➕ Add another item",
+"➕ আরেকটা জিনিস": "➕ Another item",
+"🧾 মেমোতে আগে থেকে আছে:": "🧾 Already in memo:",
+"🧾 মেমো শেষ করুন": "🧾 Finish memo",
+"🧾 মেমো দেখুন (": "🧾 View memo (",
+"টা জিনিস ·": " items ·",
+"➕ বিক্রির ঘর থেকেই আরেকটা জিনিস যোগ: খুঁজে চাপ দিন, সব এক মেমোতে জমবে": "➕ Add another item right from the sale popup: search, tap, and it all goes into one memo",
+"শেষে \"মেমো শেষ করুন\" চাপলে ছাড় দিয়ে মোট, নগদ বা বাকি": "Tap \"Finish memo\" at the end for the discounted total, cash or credit"
 }
