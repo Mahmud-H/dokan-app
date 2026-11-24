@@ -569,5 +569,7 @@
 "🧾 মেমো দেখুন (": "🧾 View memo (",
 "টা জিনিস ·": " items ·",
 "➕ বিক্রির ঘর থেকেই আরেকটা জিনিস যোগ: খুঁজে চাপ দিন, সব এক মেমোতে জমবে": "➕ Add another item right from the sale popup: search, tap, and it all goes into one memo",
-"শেষে \"মেমো শেষ করুন\" চাপলে ছাড় দিয়ে মোট, নগদ বা বাকি": "Tap \"Finish memo\" at the end for the discounted total, cash or credit"
+"শেষে \"মেমো শেষ করুন\" চাপলে ছাড় দিয়ে মোট, নগদ বা বাকি": "Tap \"Finish memo\" at the end for the discounted total, cash or credit",
+"🖼️ মেমোতে প্রতিটা জিনিসের ছবি": "🖼️ Item photos in the memo",
+"একই জিনিস একই দামে আবার যোগ করলে আলাদা লাইন না হয়ে কয়টা বেড়ে যায়": "Adding the same item at the same price again increases its qty instead of a new line"
 }
