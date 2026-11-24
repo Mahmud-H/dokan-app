@@ -1355,7 +1355,7 @@ function viewSettings(box){
   <div class="sec"><h3>Google Drive: Backup আর দুই ফোন মেলানো</h3>
     ${P.driveUrl?`<div class="okbox">চালু আছে। Internet পেলেই এই ফোনের হিসাব Drive-এ যায়, আর অন্য ফোনের নতুন হিসাব এখানে চলে আসে।<br>শেষ মিলানো: <b>${P.lastDrive?bnTime(P.lastDrive):"এখনো হয়নি"}</b></div>
       ${P.syncErr&&P.lastDriveTry>P.lastDrive?`<div class="warnbox">শেষবার মিলানো যায়নি${P.syncErr==="old"?": Drive script পুরনো, নতুন code বসাতে হবে।":P.syncErr==="key"?": দোকানের কোড মেলেনি।":"। Internet পেলে আবার চেষ্টা করবে।"}</div>`:""}
-      <div class="calc">অন্য ফোনে চালু করতে সেখানে একই লিংক আর এই <b>দোকানের কোড</b> দিন:<br><b style="font-size:24px;letter-spacing:2px;user-select:all">${esc(P.driveKey||"")}</b></div>
+      <div class="calc">অন্য ফোনে চালু করতে সেখানে একই লিংক আর এই <b>দোকানের কোড</b> দিন:<br><b style="font-size:24px;letter-spacing:2px;user-select:all">${esc(P.driveKey||"")}</b><br><small style="word-break:break-all;user-select:all;color:var(--muted)">${esc(P.driveUrl)}</small><br><button type="button" class="btn" id="dr-copy" style="margin-top:6px">📋 লিংক আর কোড কপি করুন</button><br><small>এই দুইটা কোথাও লিখে রাখুন (যেমন নিজের Gmail-এ)। ফোন reset হলে এগুলো দিয়েই সব ফেরত আসবে।</small></div>
       <div class="btns"><button type="button" class="btn primary" id="dr-now">এখনই মিলিয়ে নিন</button><button type="button" class="btn" id="dr-off">বন্ধ করুন</button></div>`
     :`<p class="help">একবার সেট করলে internet পেলেই হিসাব আপনার Google Drive-এ চলে যাবে, আর দুই ফোনে app থাকলে দুটোর হিসাব মিলে এক হয়ে যাবে। সেট করার নিয়ম Claude-এর কাছে আছে।</p>
       <label class="f">Drive লিংক<input id="dr-url" placeholder="https://script.google.com/macros/s/…/exec" inputmode="url" autocomplete="off"></label>
@@ -1372,7 +1372,8 @@ function viewSettings(box){
   $("wn-open").onclick=()=>showWhatsNew(true);
   $("bk-save").onclick=doBackup;$("bk-load").onclick=()=>{if(NATIVE)Android.pickBackup();else $("fileBak").click()};
   $("up-check").onclick=checkUpdate;
-  if(P.driveUrl){$("dr-now").onclick=()=>sync(true);$("dr-off").onclick=()=>armed($("dr-off"),()=>{S.prefs.driveUrl="";saveNow();renderMore()})}
+  if(P.driveUrl){if($("dr-copy"))$("dr-copy").onclick=()=>{const t="দামের খাতা\nDrive লিংক: "+P.driveUrl+"\nদোকানের কোড: "+P.driveKey;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast("কপি হলো, এখন Gmail বা নোটে paste করে রাখুন")).catch(()=>toast("লিংকের উপর চেপে ধরে কপি করুন"))};
+    $("dr-now").onclick=()=>sync(true);$("dr-off").onclick=()=>armed($("dr-off"),()=>{S.prefs.driveUrl="";saveNow();renderMore()})}
   else $("dr-save").onclick=()=>{const u=$("dr-url").value.trim();if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/.test(u)){toast("লিংকটা ঠিক না। script.google.com দিয়ে শুরু, /exec দিয়ে শেষ হওয়া লিংক দিন।",null,null,5000);return}
     const code=toEn($("dr-code").value).replace(/\s/g,"");
     S.prefs.driveUrl=u.split("?")[0];S.prefs.driveKey=code||S.prefs.driveKey||String(Math.floor(1e7+Math.random()*9e7));S.prefs.syncSince=0;S.prefs.lastPush=0;saveNow();renderMore();sync(true)};
