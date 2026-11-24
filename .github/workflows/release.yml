@@ -1,0 +1,20 @@
+# Publishes apk/DamerKhata.apk on the Releases page whenever a tag like v1.2 is pushed.
+name: release-apk
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: "দামের খাতা ${{ github.ref_name }}"
+          files: apk/DamerKhata.apk
+          body: |
+            **দামের খাতা** Android app (APK)।
+            নিচের **DamerKhata.apk** ফাইলটা ফোনে download করে install করুন।
+            একবার install করলে app-এর ভেতরের নতুন সব feature নিজে থেকেই update হয়, আবার APK লাগে না।
