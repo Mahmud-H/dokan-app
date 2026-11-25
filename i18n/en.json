@@ -581,5 +581,8 @@
 "লেনদেন মুছে ফেলা হলো": "Transaction deleted",
 "২৫ নভেম্বর ২০২৬": "25 Nov 2026",
 "↩️ যেকোনো কিছু মুছলে \"ফেরত\": একসাথে অনেক জিনিস, কাস্টমার, বাকির লেনদেন, খরচ, ধার, কেনার তালিকা, পাইকার, রিচার্জ": "↩️ \"Undo\" after any delete: many items at once, customers, credit entries, expenses, loans, shopping list, wholesalers, recharge",
-"ফেরতের সময়টুকু Drive sync অপেক্ষা করে, যাতে অন্য ফোন থেকেও ঠিকমতো ফিরে আসে": "Drive sync waits during the undo time, so restored records come back on the other phone too"
+"ফেরতের সময়টুকু Drive sync অপেক্ষা করে, যাতে অন্য ফোন থেকেও ঠিকমতো ফিরে আসে": "Drive sync waits during the undo time, so restored records come back on the other phone too",
+"⚡ দ্রুত sync: কিছু বদলালে ৩ সেকেন্ডে Drive-এ যায়": "⚡ Faster sync: changes go to Drive within 3 seconds",
+"App খোলা থাকলে প্রতি ৩০ সেকেন্ডে অন্য ফোনের নতুন হিসাব নিজে থেকে আসে": "While the app is open, the other phone's new records arrive every 30 seconds",
+"App-এ ফিরে এলেই সঙ্গে সঙ্গে মিলিয়ে নেয়": "Syncs right away when you come back to the app"
 }
