@@ -591,5 +591,6 @@
 "নতুন হিসাব পাঠানো বাকি": "New records not sent yet",
 "সব মিলে আছে ✓": "All synced ✓",
 "🔄 সব পাতার উপরে sync বাটন: চাপলেই মেলায়। সবুজ ফোঁটা = সব মিলে আছে, কমলা = পাঠানো বাকি, লাল = Internet নেই বা মেলেনি": "🔄 Sync button on top of every page: tap to sync. Green dot = all synced, orange = not sent yet, red = no internet or sync failed",
-"সার্চের ঘর এখন উপরের সবুজ বারের সাথে লাগানো, scroll করলে ফাঁক দিয়ে ছবি দেখা যায় না": "The search bar now sits right under the green top bar; no more gap when scrolling"
+"সার্চের ঘর এখন উপরের সবুজ বারের সাথে লাগানো, scroll করলে ফাঁক দিয়ে ছবি দেখা যায় না": "The search bar now sits right under the green top bar; no more gap when scrolling",
+"🕘 সময় এখন ১২ ঘণ্টার: সকাল ৯:০৫, বিকাল ৪:৩০, রাত ৮:১৫": "🕘 Time is now in 12-hour format: 9:05 AM, 4:30 PM"
 }
