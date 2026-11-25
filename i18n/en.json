@@ -584,5 +584,11 @@
 "ফেরতের সময়টুকু Drive sync অপেক্ষা করে, যাতে অন্য ফোন থেকেও ঠিকমতো ফিরে আসে": "Drive sync waits during the undo time, so restored records come back on the other phone too",
 "⚡ দ্রুত sync: কিছু বদলালে ৩ সেকেন্ডে Drive-এ যায়": "⚡ Faster sync: changes go to Drive within 3 seconds",
 "App খোলা থাকলে প্রতি ৩০ সেকেন্ডে অন্য ফোনের নতুন হিসাব নিজে থেকে আসে": "While the app is open, the other phone's new records arrive every 30 seconds",
-"App-এ ফিরে এলেই সঙ্গে সঙ্গে মিলিয়ে নেয়": "Syncs right away when you come back to the app"
+"App-এ ফিরে এলেই সঙ্গে সঙ্গে মিলিয়ে নেয়": "Syncs right away when you come back to the app",
+"Sync করুন": "Sync",
+"Internet নেই, পরে মিলবে": "No internet, will sync later",
+"শেষবার মেলানো যায়নি, চাপ দিয়ে আবার চেষ্টা করুন": "Last sync failed, tap to try again",
+"নতুন হিসাব পাঠানো বাকি": "New records not sent yet",
+"সব মিলে আছে ✓": "All synced ✓",
+"🔄 সব পাতার উপরে sync বাটন: চাপলেই মেলায়। সবুজ ফোঁটা = সব মিলে আছে, কমলা = পাঠানো বাকি, লাল = Internet নেই বা মেলেনি": "🔄 Sync button on top of every page: tap to sync. Green dot = all synced, orange = not sent yet, red = no internet or sync failed"
 }
