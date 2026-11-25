@@ -397,7 +397,7 @@
 "মিলানো যায়নি। লিংক বা internet দেখুন।": "Couldn't sync. Check the link or internet.",
 "মিলানো হচ্ছে…": "Syncing…",
 "মুছুন": "Delete",
-"মুছে ফেলা হলো": "Deleted",
+"মুছে ফেলা হলো": "deleted",
 "মেলেনি। আরেকটা জিনিসের মোট কেনা দাম দিয়ে চেষ্টা করুন।": "didn't match. Try another item's total purchase price.",
 "মোট": "Total",
 "মোট কিনেছেন (কয়টা)": "Total bought (qty)",
@@ -571,5 +571,15 @@
 "➕ বিক্রির ঘর থেকেই আরেকটা জিনিস যোগ: খুঁজে চাপ দিন, সব এক মেমোতে জমবে": "➕ Add another item right from the sale popup: search, tap, and it all goes into one memo",
 "শেষে \"মেমো শেষ করুন\" চাপলে ছাড় দিয়ে মোট, নগদ বা বাকি": "Tap \"Finish memo\" at the end for the discounted total, cash or credit",
 "🖼️ মেমোতে প্রতিটা জিনিসের ছবি": "🖼️ Item photos in the memo",
-"একই জিনিস একই দামে আবার যোগ করলে আলাদা লাইন না হয়ে কয়টা বেড়ে যায়": "Adding the same item at the same price again increases its qty instead of a new line"
+"একই জিনিস একই দামে আবার যোগ করলে আলাদা লাইন না হয়ে কয়টা বেড়ে যায়": "Adding the same item at the same price again increases its qty instead of a new line",
+"ফেরত আনা হলো": "Restored",
+"খরচ মুছে ফেলা হলো": "Expense deleted",
+"ধার মুছে ফেলা হলো": "Loan deleted",
+"তালিকা থেকে সরানো হলো": "Removed from list",
+"কেনা": "Bought",
+"টা সরানো হলো": " removed",
+"লেনদেন মুছে ফেলা হলো": "Transaction deleted",
+"২৫ নভেম্বর ২০২৬": "25 Nov 2026",
+"↩️ যেকোনো কিছু মুছলে \"ফেরত\": একসাথে অনেক জিনিস, কাস্টমার, বাকির লেনদেন, খরচ, ধার, কেনার তালিকা, পাইকার, রিচার্জ": "↩️ \"Undo\" after any delete: many items at once, customers, credit entries, expenses, loans, shopping list, wholesalers, recharge",
+"ফেরতের সময়টুকু Drive sync অপেক্ষা করে, যাতে অন্য ফোন থেকেও ঠিকমতো ফিরে আসে": "Drive sync waits during the undo time, so restored records come back on the other phone too"
 }
