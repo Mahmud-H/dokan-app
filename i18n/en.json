@@ -598,5 +598,18 @@
 "নগদ/বাকিতে বেছে নেওয়ার বড় গোল বাটন": "Big round Cash / Credit buttons",
 "💵 নগদ": "💵 Cash",
 "📒 বাকিতে": "📒 On credit",
-"🔤 সব লেখা একটু ছোট আর গোছানো": "🔤 All text a bit smaller and tidier"
+"🔤 সব লেখা একটু ছোট আর গোছানো": "🔤 All text a bit smaller and tidier",
+"সর্বনিম্ন দাম (৳, এর নিচে বিক্রি হবে না · ইচ্ছা হলে)": "Minimum price (৳, won't sell below this · optional)",
+"যেমন: ১২০": "e.g. 120",
+"সর্বনিম্ন দাম (৳, এর নিচে বিক্রি হবে না)": "Minimum price (৳, won't sell below this)",
+"খালি = কোনো সীমা নেই": "Empty = no limit",
+"সর্বনিম্ন দাম (৳, ইচ্ছা হলে)": "Minimum price (৳, optional)",
+"এর নিচে বিক্রি হবে না": "Won't sell below this",
+"সর্বনিম্ন দাম বিক্রির দামের চেয়ে বেশি হতে পারে না।": "Minimum price can't be higher than the selling price.",
+"এর সর্বনিম্ন দাম ৳": "Minimum price is ৳",
+", এর নিচে বিক্রি হবে না।": "; can't sell below it.",
+"ছাড় বেশি হয়ে গেছে:": "Discount too big:",
+"-এর সর্বনিম্ন দামের নিচে যাচ্ছে।": " would go below the minimum price.",
+"🔻 সর্বনিম্ন দাম: প্রতিটা জিনিসে একটা দাম ঠিক করে রাখুন, এর নিচে বিক্রি বা মেমোতে ছাড় দেওয়া যাবে না": "🔻 Minimum price: set a floor price per item; sales or memo discounts can't go below it",
+"🐞 ব্যাচের জিনিসের দাম বদলে একবার সেভ করলেই এখন থেকে যায় (আগে দুইবার চাপতে হতো)": "🐞 Changing a batch item's price now saves on the first try (it used to need two saves)"
 }
