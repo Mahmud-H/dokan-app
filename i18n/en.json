@@ -633,5 +633,11 @@
 "সব খরচসহ: মোট": "With all costs: total",
 "📊 ব্যাচের হিসাব: মাল, গাড়ি ভাড়া, প্রতিটা খরচ আলাদা, মোট কত লাগালেন, সব বিক্রি হলে কত আসবে আর এ পর্যন্ত কত উঠল": "📊 Batch accounts: goods, fare, each cost, total invested, value if all sold and how much has come back",
 "আগের ব্যাচের তালিকায় মোট টাকা আর 📊 বাটন": "Total amount and 📊 button in earlier batches",
-"জিনিস বদলানোর ঘরে: শুধু কেনা দাম আর সব খরচসহ দাম, মোট ও প্রতি পিস": "Item details: purchase price only vs with all costs, total and per piece"
+"জিনিস বদলানোর ঘরে: শুধু কেনা দাম আর সব খরচসহ দাম, মোট ও প্রতি পিস": "Item details: purchase price only vs with all costs, total and per piece",
+"🏷️ দাম দেখানো": "🏷️ Price display",
+"বিক্রির দাম হালকা হলুদে (দূর থেকে পড়া যাবে না)": "Selling price in soft yellow (hard to read from afar)",
+"সর্বনিম্ন দাম ছোট লাল লেখায় দেখান": "Show minimum price in small red text",
+"🏷️ দামের তালিকায় বিক্রির দাম হালকা হলুদে, দূর থেকে পড়া যায় না": "🏷️ Selling prices in the list are soft yellow, hard to read from afar",
+"↓ সর্বনিম্ন দাম দামের নিচে ছোট হালকা লাল লেখায়": "↓ Minimum price shown small in faint red under the price",
+"দুইটাই আরও → Backup · PIN · Update → দাম দেখানো থেকে বন্ধ করা যায়": "Both can be turned off in More → Backup · PIN · Update → Price display"
 }
